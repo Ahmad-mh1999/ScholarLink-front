@@ -26,7 +26,9 @@ import {
   useGetCommentsQuery, 
   usePostCommentMutation,
   useGetCitationQuery,
-  useLikeCommentMutation
+  useLikeCommentMutation,
+  useRecommendJournalsQuery,
+  useGetArticleReviewsQuery
 } from '../api/baseApi';
 import CitationModal from '../components/CitationModal';
 import RatingModal from '../components/RatingModal';
@@ -117,6 +119,12 @@ const ArticleDetail = () => {
 
   const { data: article, isLoading, isError } = useGetArticleBySlugQuery(slug);
   const { data: commentsData } = useGetCommentsQuery(slug);
+  const { data: journalsData } = useRecommendJournalsQuery({ 
+    category_id: article?.category_id,
+    field_of_study: article?.field_of_study
+  });
+  const { data: reviewsData } = useGetArticleReviewsQuery(article?.id);
+  
   const [likeArticle] = useLikeArticleMutation();
   const [bookmarkArticle] = useBookmarkArticleMutation();
   const [likeComment] = useLikeCommentMutation();
@@ -265,6 +273,40 @@ Our research suggests that hardware-aware neural architecture search (NAS) provi
             </button>
           )}
         </div>
+
+        {/* Recommended Journals Section */}
+        {journalsData && journalsData.length > 0 && (
+          <section className="pt-12">
+            <div className="flex items-center gap-4 border-b border-gray-100 pb-6 mb-8">
+              <Star className="w-7 h-7 text-accent" />
+              <h2 className="text-2xl font-serif font-bold text-primary">Recommended Journals</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {journalsData.map((journal) => (
+                <div key={journal.id} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all">
+                  <h3 className="text-lg font-bold text-primary mb-2">{journal.title}</h3>
+                  <p className="text-sm text-gray-500 mb-4">{journal.field_of_study}</p>
+                  <div className="flex items-center gap-4 text-xs text-gray-400 mb-4">
+                    <span>ISSN: {journal.issn}</span>
+                    {journal.impact_factor && (
+                      <span>Impact Factor: {journal.impact_factor}</span>
+                    )}
+                  </div>
+                  {journal.website && (
+                    <a
+                      href={journal.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-accent text-sm font-bold hover:underline"
+                    >
+                      Visit Journal →
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Comments Section */}
         <section className="pt-20 space-y-12">

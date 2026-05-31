@@ -12,14 +12,12 @@ import { useGetMyArticlesQuery, useDeleteArticleMutation, useUpdateArticleMutati
 import AssignReviewerModal from '../components/AssignReviewerModal';
 
 // Import Tabs
-import DraftsTab from './MyArticles/DraftsTab';
 import UnderReviewTab from './MyArticles/UnderReviewTab';
 import PublishedTab from './MyArticles/PublishedTab';
-import RejectedTab from './MyArticles/RejectedTab';
 
 const MyArticles = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('draft');
+  const [activeTab, setActiveTab] = useState('under_review');
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [assignReviewerModal, setAssignReviewerModal] = useState(null);
@@ -41,18 +39,16 @@ const MyArticles = () => {
 
   // Calculate counts for each status
   const counts = useMemo(() => {
-    if (!articlesData?.results) return { draft: 0, under_review: 0, published: 0, rejected: 0 };
+    if (!articlesData?.results) return { under_review: 0, published: 0 };
     return articlesData.results.reduce((acc, article) => {
       acc[article.status] = (acc[article.status] || 0) + 1;
       return acc;
-    }, { draft: 0, under_review: 0, published: 0, rejected: 0 });
+    }, { under_review: 0, published: 0 });
   }, [articlesData]);
 
   const tabs = [
-    { id: 'draft', label: 'Drafts', count: counts.draft },
     { id: 'under_review', label: 'Under Review', count: counts.under_review },
     { id: 'published', label: 'Published', count: counts.published },
-    { id: 'rejected', label: 'Rejected', count: counts.rejected },
   ];
 
   const handleDelete = async () => {
@@ -69,7 +65,7 @@ const MyArticles = () => {
   
   const handleWithdraw = async (article) => {
     try {
-      await updateArticle({ slug: article.slug, status: 'draft' }).unwrap();
+      await updateArticle({ slug: article.slug, status: 'under_review' }).unwrap();
     } catch (err) {
       console.error('Failed to withdraw article:', err);
     }
@@ -77,16 +73,6 @@ const MyArticles = () => {
 
   const handleAssignReviewer = (article) => {
     setAssignReviewerModal(article);
-  };
-  
-  const handleResubmit = async (article) => {
-    const formData = new FormData();
-    formData.append('status', 'under_review');
-    try {
-      await updateArticle({ slug: article.slug, formData }).unwrap();
-    } catch (err) {
-      console.error('Failed to resubmit:', err);
-    }
   };
 
   return (
@@ -149,14 +135,6 @@ const MyArticles = () => {
 
         {/* Tab Content */}
         <div className="min-h-[400px]">
-          {activeTab === 'draft' && (
-            <DraftsTab 
-              articles={filteredArticles} 
-              isLoading={isLoading || isFetching} 
-              onDelete={setDeleteConfirm} 
-              onEdit={handleEdit} 
-            />
-          )}
           {activeTab === 'under_review' && (
             <UnderReviewTab 
               articles={filteredArticles} 
@@ -171,13 +149,6 @@ const MyArticles = () => {
               isLoading={isLoading || isFetching} 
               onDelete={setDeleteConfirm} 
               onEdit={handleEdit} 
-            />
-          )}
-          {activeTab === 'rejected' && (
-            <RejectedTab 
-              articles={filteredArticles} 
-              isLoading={isLoading || isFetching} 
-              onResubmit={handleResubmit} 
             />
           )}
         </div>

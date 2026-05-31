@@ -12,7 +12,7 @@ const ShareModal = ({ slug, onClose }) => {
   };
 
   const shareToTwitter = () => {
-    const text = 'Check out this research article on ScholarLink';
+    const text = 'Check out this research article';
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(articleUrl)}`, '_blank');
   };
 
@@ -21,7 +21,7 @@ const ShareModal = ({ slug, onClose }) => {
   };
 
   const shareToEmail = () => {
-    const subject = 'Research Article from ScholarLink';
+    const subject = 'Research Article';
     const body = `I found this interesting research article: ${articleUrl}`;
     window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
   };

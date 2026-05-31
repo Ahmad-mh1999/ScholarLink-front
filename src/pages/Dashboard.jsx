@@ -1,12 +1,12 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { 
   FileText, 
   Eye, 
   Star, 
   TrendingUp, 
-  Edit3, 
   Plus, 
   Bookmark, 
   Users, 
@@ -22,8 +22,11 @@ import {
   Bell,
   CheckCircle2,
   Heart,
-  MessageCircle
+  MessageCircle,
+  Zap
 } from 'lucide-react';
+
+
 import { 
   useGetStatsQuery, 
   useGetTrendingArticlesQuery, 
@@ -93,27 +96,6 @@ const TrendingCard = ({ article, onClick }) => (
           </span>
         </div>
       </div>
-    </div>
-  </div>
-);
-
-// ─── Sub-component: Draft Item ───
-const DraftItem = ({ draft, onEdit }) => (
-  <div 
-    onClick={() => onEdit(draft)}
-    className="group cursor-pointer p-4 -mx-2 rounded-2xl hover:bg-[#F7FAFC] transition-all"
-  >
-    <div className="flex items-center justify-between mb-1">
-      <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest group-hover:text-accent transition-colors">
-        {draft.updated_at ? new Date(draft.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Recently'}
-      </p>
-      <Edit3 className="w-3 h-3 text-gray-200 group-hover:text-accent transition-colors" />
-    </div>
-    <h4 className="text-sm font-bold text-primary leading-tight line-clamp-2 tracking-tight group-hover:text-accent transition-colors">
-      {draft.title || 'Untitled Draft'}
-    </h4>
-    <div className="mt-3 h-1 w-full bg-gray-50 rounded-full overflow-hidden">
-      <div className="h-full bg-accent/40 group-hover:bg-accent transition-all duration-500" style={{ width: `${draft.abstract ? 75 : draft.description ? 50 : 25}%` }}></div>
     </div>
   </div>
 );
@@ -291,6 +273,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   // ─── API Hooks ───
+
   const { data: stats, isLoading: statsLoading, error: statsError } = useGetStatsQuery();
   const { data: trending, isLoading: trendingLoading } = useGetTrendingArticlesQuery();
   const { data: mostRead, isLoading: mostReadLoading } = useGetMostReadQuery({ period: 'week' });
@@ -300,7 +283,6 @@ const Dashboard = () => {
   const { data: notificationsData, isLoading: notificationsLoading } = useGetNotificationsQuery({ page_size: 5 });
 
   // ─── Derived Data ───
-  const drafts = myArticles?.results?.filter(a => a.status === 'draft') || [];
   const underReview = myArticles?.results?.filter(a => a.status === 'under_review') || [];
   const published = myArticles?.results?.filter(a => a.status === 'published') || [];
   const unreadCount = unreadData?.unread_count || 0;
@@ -312,23 +294,95 @@ const Dashboard = () => {
     return num.toString();
   };
 
-  // Handle draft edit → navigate to submit page with edit mode
-  const handleEditDraft = (draft) => {
-    navigate(`/submit?edit=${draft.slug}`);
-  };
-
   // Handle article click → navigate to article detail
   const handleArticleClick = (article) => {
     navigate(`/article/${article.slug}`);
   };
 
+  // ─── Suggest Journals (inline per row) ───
+  const [suggestOpenForArticleId, setSuggestOpenForArticleId] = React.useState(null);
+  const [suggestLoadingForArticleId, setSuggestLoadingForArticleId] = React.useState(null);
+  const [suggestResults, setSuggestResults] = React.useState({});
+
+  const fetchSuggestedJournals = async (articleId) => {
+    setSuggestLoadingForArticleId(articleId);
+    try {
+      const token = localStorage.getItem('access_token');
+      const res = await fetch(`${import.meta.env.VITE_API_URL}articles/${articleId}/recommend-journals/`, {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error(`Failed to fetch recommendations (HTTP ${res.status})`);
+      }
+
+      const data = await res.json();
+      // Expected: array (top 3)
+      setSuggestResults((prev) => ({ ...prev, [articleId]: Array.isArray(data) ? data : data.journals || [] }));
+    } catch (e) {
+      console.error(e);
+      toast?.error?.('Failed to load suggested journals');
+      setSuggestResults((prev) => ({ ...prev, [articleId]: [] }));
+    } finally {
+      setSuggestLoadingForArticleId(null);
+    }
+  };
+
+  const handleToggleSuggest = async (articleId) => {
+    setSuggestOpenForArticleId((cur) => (cur === articleId ? null : articleId));
+    if (suggestResults[articleId] && suggestResults[articleId].length > 0) return;
+    await fetchSuggestedJournals(articleId);
+  };
+
+  const applyNominatedJournal = async (articleId, journalId) => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const res = await fetch(`${import.meta.env.VITE_API_URL}articles/${articleId}/`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ nominated_journal: journalId }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`Failed to apply nominated journal (HTTP ${res.status})`);
+      }
+
+      toast?.success?.('Nominated journal applied');
+      setSuggestOpenForArticleId(null);
+    } catch (e) {
+      console.error(e);
+      toast?.error?.('Failed to apply nominated journal');
+    }
+  };
+
   return (
     <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {/* High-Point Banner */}
+      {!pointsLoading && (myPoints?.total || 0) >= 1000 && (
+        <div className="bg-gradient-to-r from-[#D69E2E]/20 to-[#D69E2E]/5 border border-[#D69E2E]/30 rounded-[2.5rem] p-6 flex items-start gap-4 shadow-sm">
+          <div className="w-12 h-12 rounded-2xl bg-[#D69E2E]/15 flex items-center justify-center">
+            <Trophy className="w-6 h-6 text-[#D69E2E]" />
+          </div>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#D69E2E] mb-2">High Points Account</p>
+            <p className="text-sm font-bold text-primary">
+              Eligible for Fast-Track Peer Review, Instant Journal Matching, and Full Publication Cost Coverage Support.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* ═══ 1. Welcome Header ═══ */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+
         <div className="flex flex-col gap-3">
           <h1 className="text-5xl font-serif font-bold text-primary tracking-tight">
-            Welcome back, {user?.first_name || 'Scholar'}!
+            Dashboard
           </h1>
           <div className="flex items-center gap-3">
             <span className="text-[10px] font-bold text-gray-300 uppercase tracking-[0.3em]">Academic Profile:</span>
@@ -529,25 +583,7 @@ const Dashboard = () => {
                 {[1, 2, 3].map(i => <div key={i} className="h-40 bg-white rounded-2xl animate-pulse"></div>)}
               </div>
             ) : myArticles?.results?.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Drafts Card */}
-                <div className="bg-white p-8 rounded-2xl border border-gray-50 shadow-sm hover:shadow-lg transition-all">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center text-gray-400">
-                      <Edit3 className="w-5 h-5" />
-                    </div>
-                    <span className="text-3xl font-bold text-primary">{drafts.length}</span>
-                  </div>
-                  <h4 className="font-bold text-primary text-sm mb-1">Drafts</h4>
-                  <p className="text-[10px] text-gray-400 font-medium">In progress</p>
-                  {drafts.length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-gray-50">
-                      <p className="text-xs font-bold text-primary line-clamp-1">{drafts[0].title || 'Untitled'}</p>
-                      <p className="text-[10px] text-gray-300 mt-1">Last edited recently</p>
-                    </div>
-                  )}
-                </div>
-
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Under Review Card */}
                 <div className="bg-white p-8 rounded-2xl border border-gray-50 shadow-sm hover:shadow-lg transition-all">
                   <div className="flex items-center justify-between mb-6">
@@ -557,17 +593,62 @@ const Dashboard = () => {
                     <span className="text-3xl font-bold text-primary">{underReview.length}</span>
                   </div>
                   <h4 className="font-bold text-primary text-sm mb-1">Under Review</h4>
-                  <p className="text-[10px] text-gray-400 font-medium">Awaiting decision</p>
+                <p className="text-[10px] text-gray-400 font-medium">Awaiting decision</p>
                   {underReview.length > 0 && (
                     <div className="mt-4 pt-4 border-t border-gray-50">
-                      <p className="text-xs font-bold text-primary line-clamp-1">{underReview[0].title}</p>
-                      <p className="text-[10px] text-gray-300 mt-1">Submitted for review</p>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold text-primary line-clamp-1">{underReview[0].title}</p>
+                          <p className="text-[10px] text-gray-300 mt-1">Submitted for review</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleSuggest(underReview[0].id)}
+                          className="shrink-0 bg-accent/10 hover:bg-accent/20 text-accent px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest"
+                        >
+                          Suggest Best Journals
+                        </button>
+                      </div>
+
+                      {suggestOpenForArticleId === underReview[0].id && (
+                        <div className="mt-4 bg-[#F7FAFC] border border-gray-100 rounded-2xl p-4">
+                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
+                            Top Recommendations
+                          </p>
+
+                          {suggestLoadingForArticleId === underReview[0].id ? (
+                            <div className="flex items-center gap-2 text-[10px] font-bold text-gray-500">
+                              <Loader2 className="w-4 h-4 animate-spin" /> Loading...
+                            </div>
+                          ) : (suggestResults[underReview[0].id] || []).length > 0 ? (
+                            <div className="space-y-3">
+                              {(suggestResults[underReview[0].id] || []).slice(0, 3).map((j) => (
+                                <div key={j.id} className="bg-white border border-gray-50 rounded-xl p-3">
+                                  <p className="text-xs font-bold text-primary line-clamp-1">{j.name || j.journal_name || 'Journal'}</p>
+                                  <p className="text-[10px] text-gray-400 mt-1">{j.field_of_study || j.field || '—'} • IF: {j.impact_factor ?? '—'}</p>
+                                  <button
+                                    type="button"
+                                    onClick={() => applyNominatedJournal(underReview[0].id, j.id)}
+                                    className="mt-3 w-full bg-primary hover:bg-[#152c4d] text-white px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest"
+                                  >
+                                    Apply as Nominated Journal
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-[10px] text-gray-400">No journal suggestions available.</p>
+                          )}
+                        </div>
+                      )}
+
                     </div>
                   )}
                 </div>
 
                 {/* Published Card */}
                 <div className="bg-white p-8 rounded-2xl border border-gray-50 shadow-sm hover:shadow-lg transition-all">
+
                   <div className="flex items-center justify-between mb-6">
                     <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center text-accent">
                       <FileText className="w-5 h-5" />
@@ -580,6 +661,12 @@ const Dashboard = () => {
                     <div className="mt-4 pt-4 border-t border-gray-50">
                       <p className="text-xs font-bold text-primary line-clamp-1">{published[0].title}</p>
                       <p className="text-[10px] text-gray-300 mt-1">{published[0].views_count || 0} views</p>
+                      {!published[0].external_journal_accepted && (
+                        <div className="mt-2 flex items-center gap-1 text-[10px] font-bold text-orange-500">
+                          <AlertCircle className="w-3 h-3" />
+                          <span>Pending External Journal Publication</span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -605,43 +692,8 @@ const Dashboard = () => {
             loading={notificationsLoading} 
           />
 
-          {/* ═══ 8. Recent Drafts ═══ */}
-          <div className="bg-white p-10 rounded-[2.5rem] border border-gray-50 shadow-sm">
-            <div className="flex items-center justify-between mb-8">
-              <h3 className="text-lg font-bold text-primary tracking-tight">Recent Drafts</h3>
-              <Link to="/my-articles" className="text-[10px] font-bold text-accent uppercase tracking-widest hover:underline">
-                View All
-              </Link>
-            </div>
-            
-            {drafts.length > 0 ? (
-              <div className="space-y-2">
-                {drafts.slice(0, 4).map(draft => (
-                  <DraftItem 
-                    key={draft.id} 
-                    draft={draft} 
-                    onEdit={handleEditDraft} 
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-6">
-                <Edit3 className="w-8 h-8 text-gray-200 mx-auto mb-3" />
-                <p className="text-sm text-gray-400 font-medium">No drafts yet</p>
-                <p className="text-[10px] text-gray-300 mt-1">Start writing your next manuscript</p>
-              </div>
-            )}
-            
-            <Link 
-              to="/submit"
-              className="w-full bg-primary hover:bg-[#152c4d] text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-primary/20 mt-6"
-            >
-              <Plus className="w-4 h-4" />
-              <span className="text-xs uppercase tracking-widest">New Manuscript</span>
-            </Link>
-          </div>
+          {/* ═══ Points & Activity Widget ═══ */}
 
-          {/* ═══ 8. Points & Activity Widget ═══ */}
           <div className="bg-accent/5 p-10 rounded-[2.5rem] border border-accent/10 relative overflow-hidden group">
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
@@ -662,9 +714,11 @@ const Dashboard = () => {
                 </div>
               )}
               
-              <p className="text-sm text-gray-500 font-medium leading-relaxed mb-6 opacity-80">
+              <p className="text-sm text-gray-500 font-medium leading-relaxed mb-4 opacity-80">
                 Earn points by publishing, reviewing, and engaging with the research community.
               </p>
+
+
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between text-xs">
@@ -672,12 +726,6 @@ const Dashboard = () => {
                     <FileText className="w-3 h-3 text-accent" /> Publish Article
                   </span>
                   <span className="font-bold text-accent">+10 pts</span>
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-gray-400 flex items-center gap-2">
-                    <MessageSquare className="w-3 h-3 text-accent" /> Submit Review
-                  </span>
-                  <span className="font-bold text-accent">+5 pts</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-bold text-gray-400 flex items-center gap-2">

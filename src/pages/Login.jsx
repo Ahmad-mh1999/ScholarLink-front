@@ -56,8 +56,11 @@ const Login = () => {
       console.log('[AUTH DEBUG] Fresh User from /me/:', freshUser);
       console.log('[AUTH DEBUG] Final Role:', freshUser?.role);
       console.log('[AUTH DEBUG] Is Admin?', freshUser?.is_staff === true || freshUser?.role === 'admin');
-      
-      navigate('/');
+
+      const isSuperAdmin = !!(freshUser?.is_superuser || freshUser?.role === 'admin' || freshUser?.role === 'super_admin');
+      const nextPath = isSuperAdmin ? '/super-admin-dashboard' : '/';
+      navigate(nextPath);
+
     } catch (err) {
       console.error('[AUTH DEBUG] Login error:', err.response?.data || err.message);
       setServerError(err.response?.data?.message || 'Invalid email or password.');
@@ -68,7 +71,6 @@ const Login = () => {
 
   return (
     <AuthLayout 
-      heroTitle="Welcome Back to ScholarLink"
       heroText="Access your research dashboard, collaborate with peers, and continue your academic journey."
     >
       <h2 className="text-4xl font-serif text-primary mb-2 tracking-tight">Sign In</h2>

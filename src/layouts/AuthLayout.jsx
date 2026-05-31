@@ -16,7 +16,7 @@ const AuthLayout = ({ children, title, subtitle, heroTitle, heroText }) => {
           {/* Logo */}
           <div className="relative z-10 flex items-center gap-2 text-2xl font-serif">
             <BookOpen className="text-accent w-8 h-8" />
-            <span className="font-bold tracking-tight">ScholarLink</span>
+            <span className="font-bold tracking-tight">[Platform Name]</span>
           </div>
 
           {/* Hero Content */}
@@ -55,8 +55,8 @@ const AuthLayout = ({ children, title, subtitle, heroTitle, heroText }) => {
       {/* Footer */}
       <footer className="bg-white border-t border-gray-100 py-6 px-12 flex flex-col md:flex-row justify-between items-center text-[11px] text-gray-400 uppercase tracking-widest font-medium">
         <div className="flex items-center gap-4 mb-4 md:mb-0">
-          <span className="text-primary font-serif lowercase tracking-normal text-lg normal-case">ScholarLink</span>
-          <span>© 2024 SCHOLARLINK. THE CURATED ARCHIVE.</span>
+          <span className="text-primary font-serif lowercase tracking-normal text-lg normal-case">[Platform Name]</span>
+          <span>© 2024 [Platform Name]. The Academic Research Platform.</span>
         </div>
         <div className="flex gap-8">
           <a href="#" className="hover:text-primary transition-colors">Terms</a>

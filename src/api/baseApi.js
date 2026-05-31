@@ -3,7 +3,13 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 export const baseApi = createApi({
   reducerPath: 'api',
   baseQuery: fetchBaseQuery({
-    baseUrl: import.meta.env.VITE_API_URL,
+    baseUrl: (() => {
+      const raw = import.meta.env.VITE_API_URL || '';
+      // Prevent double-prefixing like .../api/v1/api/v1/...
+      // and ensure we always have a trailing slash for RTK Query path joins.
+      const normalized = raw.replace(/\/+$/u, '/');
+      return normalized;
+    })(),
     prepareHeaders: (headers) => {
       const token = localStorage.getItem('access_token');
       if (token) {
@@ -12,10 +18,14 @@ export const baseApi = createApi({
       return headers;
     },
   }),
-  tagTypes: ['Articles', 'User', 'Notifications', 'Stats', 'Categories', 'Points', 'Reviews'],
+  tagTypes: ['Articles', 'User', 'Notifications', 'Stats', 'Categories', 'Points', 'Reviews', 'Journals', 'ReviewRequests', 'Guidelines'],
   endpoints: (builder) => ({
     getStats: builder.query({
       query: () => 'stats/platform/',
+      providesTags: ['Stats'],
+    }),
+    getLandingStats: builder.query({
+      query: () => 'landing-stats/',
       providesTags: ['Stats'],
     }),
     getArticleBySlug: builder.query({
@@ -225,11 +235,16 @@ export const baseApi = createApi({
       invalidatesTags: ['User'],
     }),
     updateArticle: builder.mutation({
-      query: ({ slug, formData }) => ({
-        url: `articles/${slug}/`,
-        method: 'PATCH',
-        body: formData,
-      }),
+      query: ({ slug, formData }) => {
+        // UI may pass a plain object (JSON) while the param is named formData.
+        // DRF PATCH expects JSON for simple status updates.
+        const body = formData ?? {};
+        return {
+          url: `articles/${slug}/`,
+          method: 'PATCH',
+          body,
+        };
+      },
       invalidatesTags: (result, error, { slug }) => [{ type: 'Articles', id: slug }, 'Articles', 'Stats'],
     }),
     getMyPoints: builder.query({
@@ -350,11 +365,154 @@ export const baseApi = createApi({
       }),
       invalidatesTags: ['Notifications'],
     }),
+    // ==================== Journal Endpoints (Admin CRUD) ====================
+    getJournals: builder.query({
+      query: (params) => ({
+        url: 'admin/journals/',
+        params: params,
+      }),
+      providesTags: ['Journals'],
+    }),
+
+    createJournal: builder.mutation({
+      query: (data) => ({
+        url: 'admin/journals/',
+        method: 'POST',
+        body: data,
+      }),
+      invalidatesTags: ['Journals'],
+    }),
+
+    updateJournal: builder.mutation({
+      query: ({ id, ...data }) => ({
+        url: `admin/journals/${id}/`,
+        method: 'PATCH',
+        body: data,
+      }),
+      invalidatesTags: ['Journals'],
+    }),
+
+    deleteJournal: builder.mutation({
+      query: (id) => ({
+        url: `admin/journals/${id}/`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Journals'],
+    }),
+
+    // Kept for other parts of the app (if used elsewhere)
+    recommendJournals: builder.query({
+      query: (params) => ({
+        url: 'reviews/api/journals/recommend/',
+        params: params,
+      }),
+      providesTags: ['Journals'],
+    }),
+
+    // ==================== Review Request Endpoints ====================
+    getReviewRequests: builder.query({
+      query: (params) => ({
+        url: 'reviews/api/review-requests/',
+        params: params,
+      }),
+      providesTags: ['ReviewRequests'],
+    }),
+    assignReviewer: builder.mutation({
+      query: (data) => ({
+        url: 'reviews/api/review-requests/',
+        method: 'POST',
+        body: data,
+      }),
+      invalidatesTags: ['ReviewRequests', 'Articles'],
+    }),
+    getMyReviewRequests: builder.query({
+      query: () => 'reviews/api/review-requests/my_requests/',
+      providesTags: ['ReviewRequests'],
+    }),
+    acceptReviewRequest: builder.mutation({
+      query: (id) => ({
+        url: `reviews/api/review-requests/${id}/accept/`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['ReviewRequests', 'Reviews'],
+    }),
+    rejectReviewRequest: builder.mutation({
+      query: (id) => ({
+        url: `reviews/api/review-requests/${id}/reject/`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['ReviewRequests'],
+    }),
+    // ==================== Review Endpoints ====================
+    getReviews: builder.query({
+      query: (params) => ({
+        url: 'reviews/api/reviews/',
+        params: params,
+      }),
+      providesTags: ['Reviews'],
+    }),
+    getMyReviews: builder.query({
+      query: () => 'reviews/api/reviews/my_reviews/',
+      providesTags: ['Reviews'],
+    }),
+    getArticleReviews: builder.query({
+      query: (articleId) => ({
+        url: 'reviews/api/reviews/article_reviews/',
+        params: { article_id: articleId },
+      }),
+      providesTags: (result, error, articleId) => [{ type: 'Reviews', id: articleId }],
+    }),
+    createReview: builder.mutation({
+      query: (data) => ({
+        url: 'reviews/api/reviews/',
+        method: 'POST',
+        body: data,
+      }),
+      invalidatesTags: ['Reviews', 'Articles'],
+    }),
+    updateReview: builder.mutation({
+      query: ({ id, ...data }) => ({
+        url: `reviews/api/reviews/${id}/`,
+        method: 'PATCH',
+        body: data,
+      }),
+      invalidatesTags: ['Reviews'],
+    }),
+    submitReview: builder.mutation({
+      query: ({ id, ...data }) => ({
+        url: `reviews/api/reviews/${id}/submit/`,
+        method: 'POST',
+        body: data,
+      }),
+      invalidatesTags: ['Reviews', 'Articles'],
+    }),
+    // ==================== Points Endpoints ====================
+    expediteReview: builder.mutation({
+      query: (articleId) => ({
+        url: 'points/api/user-points/expedite_review/',
+        method: 'POST',
+        body: { article_id: articleId },
+      }),
+      invalidatesTags: ['Points', 'Articles'],
+    }),
+    checkFormattingEligibility: builder.query({
+      query: () => 'points/api/user-points/check_formatting_eligibility/',
+      providesTags: ['Points', 'Guidelines'],
+    }),
+    getJournalGuidelines: builder.query({
+      query: () => 'points/api/guidelines/',
+      providesTags: ['Guidelines'],
+    }),
+    downloadManuscript: builder.query({
+      query: (articleId) => `articles/download/${articleId}/`,
+      providesTags: (result, error, articleId) => [{ type: 'Articles', id: articleId }],
+    }),
   }),
 });
 
 export const {
   useGetStatsQuery,
+  useGetLandingStatsQuery,
   useGetArticlesQuery,
   useGetArticleBySlugQuery,
   useLikeArticleMutation,
@@ -368,7 +526,6 @@ export const {
   useUpdateArticleMutation,
   useGetReviewDashboardQuery,
   useRespondToReviewRequestMutation,
-  useAssignReviewerMutation,
   useGetNotificationsQuery,
   useGetUnreadNotificationsCountQuery,
   useMarkAllNotificationsReadMutation,
@@ -411,4 +568,29 @@ export const {
   useUpdateCategoryMutation,
   useDeleteCategoryMutation,
   useSendNotificationMutation,
+  // Journal hooks
+  useGetJournalsQuery,
+  useCreateJournalMutation,
+  useUpdateJournalMutation,
+  useDeleteJournalMutation,
+  useRecommendJournalsQuery,
+
+
+  // Review Request hooks
+  useGetReviewRequestsQuery,
+  useAssignReviewerMutation,
+  useGetMyReviewRequestsQuery,
+  useAcceptReviewRequestMutation,
+  useRejectReviewRequestMutation,
+  // Review hooks
+  useGetReviewsQuery,
+  useGetMyReviewsQuery,
+  useGetArticleReviewsQuery,
+  useCreateReviewMutation,
+  useUpdateReviewMutation,
+  // Points hooks
+  useExpediteReviewMutation,
+  useCheckFormattingEligibilityQuery,
+  useGetJournalGuidelinesQuery,
+  useDownloadManuscriptQuery,
 } = baseApi;

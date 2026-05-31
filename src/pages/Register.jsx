@@ -12,10 +12,9 @@ const schema = yup.object().shape({
   first_name: yup.string().required('First name is required'),
   last_name: yup.string().required('Last name is required'),
   email: yup.string().email('Invalid email').required('Email is required'),
-  institution: yup.string().nullable(),
-  field_of_study: yup.string().nullable(),
+  institution: yup.string().required('Institution is required'),
+  field_of_study: yup.string().required('Field of study is required'),
   academic_status: yup.string().required('Academic status is required'),
-  study_year: yup.string().nullable(),
   password: yup.string().required('Password is required').min(8),
   password2: yup.string()
     .oneOf([yup.ref('password'), null], 'Passwords must match')
@@ -29,12 +28,15 @@ const Register = () => {
   const [serverError, setServerError] = useState('');
   const navigate = useNavigate();
 
-  const { register, handleSubmit, formState: { errors } } = useForm({
+  const { register, handleSubmit, formState: { errors }, watch } = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
       academic_status: '',
+      terms: false,
     }
   });
+
+  const termsChecked = watch('terms');
 
   const onInvalid = (formErrors) => {
     console.log('Register form validation errors:', formErrors);
@@ -96,6 +98,7 @@ const Register = () => {
         {serverError && <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm">{serverError}</div>}
         
         <div className="space-y-1">
+          <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider px-2">Username *</label>
           <input
             {...register('username')}
             placeholder="Username"
@@ -106,6 +109,7 @@ const Register = () => {
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
+            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider px-2">First Name *</label>
             <input
               {...register('first_name')}
               placeholder="First Name"
@@ -114,6 +118,7 @@ const Register = () => {
             {errors.first_name && <p className="text-red-500 text-xs px-2">{errors.first_name.message}</p>}
           </div>
           <div className="space-y-1">
+            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider px-2">Last Name *</label>
             <input
               {...register('last_name')}
               placeholder="Last Name"
@@ -124,6 +129,7 @@ const Register = () => {
         </div>
 
         <div className="space-y-1">
+          <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider px-2">Email *</label>
           <input
             {...register('email')}
             placeholder="Email"
@@ -133,24 +139,27 @@ const Register = () => {
         </div>
 
         <div className="space-y-1">
+          <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider px-2">Institution *</label>
           <input
             {...register('institution')}
             placeholder="Institution"
             className="w-full px-6 py-4 bg-[#EBF1FF] rounded-2xl border-none placeholder-gray-400 focus:ring-2 focus:ring-primary"
           />
+          {errors.institution && <p className="text-red-500 text-xs px-2">{errors.institution.message}</p>}
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider px-2">Field of Study</label>
+            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider px-2">Field of Study *</label>
             <input
               {...register('field_of_study')}
               placeholder="Field of Study"
               className="w-full px-6 py-4 bg-[#EBF1FF] rounded-2xl border-none placeholder-gray-400 focus:ring-2 focus:ring-primary"
             />
+            {errors.field_of_study && <p className="text-red-500 text-xs px-2">{errors.field_of_study.message}</p>}
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider px-2">Academic Status</label>
+            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider px-2">Academic Status *</label>
             <select
               {...register('academic_status')}
               className="w-full px-6 py-4 bg-[#EBF1FF] rounded-2xl border-none text-gray-400 focus:ring-2 focus:ring-primary appearance-none cursor-pointer"
@@ -167,20 +176,9 @@ const Register = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider px-2">Study Year</label>
-            <input
-              {...register('study_year')}
-              placeholder="Study Year"
-              className="w-full px-6 py-4 bg-[#EBF1FF] rounded-2xl border-none placeholder-gray-400 focus:ring-2 focus:ring-primary"
-            />
-          </div>
-        </div>
-
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider px-2">Password</label>
+            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider px-2">Password *</label>
             <input
               {...register('password')}
               type="password"
@@ -190,7 +188,7 @@ const Register = () => {
             {errors.password && <p className="text-red-500 text-xs px-2">{errors.password.message}</p>}
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider px-2">Confirm Password</label>
+            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider px-2">Confirm Password *</label>
             <input
               {...register('password2')}
               type="password"
@@ -201,23 +199,23 @@ const Register = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 px-2">
+        <div className="flex items-start gap-2 px-2">
           <input
             {...register('terms')}
             type="checkbox"
             id="terms"
-            className="w-4 h-4 rounded text-accent border-gray-300 focus:ring-accent"
+            className="w-4 h-4 mt-0.5 rounded text-accent border-gray-300 focus:ring-accent"
           />
-          <label htmlFor="terms" className="text-xs text-gray-500">
-            I agree to the <span className="underline cursor-pointer">Terms</span> & <span className="underline cursor-pointer">Ethical Guidelines</span>
+          <label htmlFor="terms" className="text-xs text-gray-500 leading-relaxed">
+            I agree to the Platform Publishing Rules, Privacy Policy, and Terms of Service.
           </label>
         </div>
         {errors.terms && <p className="text-red-500 text-xs px-2">{errors.terms.message}</p>}
 
         <button
           type="submit"
-          disabled={loading}
-          className="w-full bg-accent hover:bg-[#287E7B] text-white py-5 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all transform hover:scale-[1.01] active:scale-[0.99] disabled:opacity-70 mt-4"
+          disabled={loading || !termsChecked}
+          className="w-full bg-accent hover:bg-[#287E7B] text-white py-5 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all transform hover:scale-[1.01] active:scale-[0.99] disabled:opacity-70 disabled:cursor-not-allowed mt-4"
         >
           {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
             <>

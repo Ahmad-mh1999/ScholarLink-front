@@ -1,760 +1,983 @@
-/**
- * Super Admin Dashboard - Complete admin interface for ScholarLink
- * Features: Overview stats, user management, article management, peer review, categories
- */
-
-import React, { useState, useMemo } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { Link, Navigate } from 'react-router-dom';
-import { logout } from '../features/auth/authSlice';
-import toast from 'react-hot-toast';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard,
-  Users,
-  FileText,
-  Search,
-  Settings,
-  Tag,
-  BarChart3,
-  TrendingUp,
-  TrendingDown,
-  UserCheck,
-  UserX,
-  Shield,
-  BookOpen,
-  Calendar,
-  Eye,
-  Heart,
-  MessageSquare,
-  MoreHorizontal,
-  Edit,
-  Trash2,
-  CheckCircle,
-  XCircle,
-  AlertTriangle,
-  Plus,
-  ChevronRight,
-  LogOut,
-  Loader2,
-  Filter,
-  Bell,
-  Layers,
-  ShieldCheck,
-  Upload,
-  X,
-  Mail,
-  GraduationCap
-} from 'lucide-react';
-
-// Import API hooks
-import {
-  useGetAdminStatsQuery,
   useGetAdminUsersQuery,
-  useUpdateAdminUserMutation,
-  useDeleteUserMutation,
   useGetAdminArticlesQuery,
   useUpdateArticleMutation,
   useDeleteArticleMutation,
-  useModerateArticleMutation,
-  useAssignReviewerMutation,
-  useGetAdminCategoriesQuery,
-  useCreateCategoryMutation,
-  useUpdateCategoryMutation,
-  useDeleteCategoryMutation,
+  useGetJournalsQuery,
+  useCreateJournalMutation,
+  useUpdateJournalMutation,
+  useDeleteJournalMutation,
+  useSendNotificationMutation,
 } from '../api/baseApi';
 
-/**
- * Stats Card Component
- */
-const StatsCard = ({ title, value, change, icon: Icon, color = 'primary' }) => (
-  <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
-    <div className="flex items-center justify-between mb-4">
-      <div className={`w-12 h-12 rounded-2xl bg-${color}/10 flex items-center justify-center`}>
-        <Icon className={`w-6 h-6 text-${color}`} />
-      </div>
-      {change !== undefined && (
-        <div className={`flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full ${
-          change >= 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
-        }`}>
-          {change >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-          {Math.abs(change)}%
-        </div>
-      )}
-    </div>
-    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{title}</p>
-    <h4 className="text-2xl font-bold text-primary">{value?.toLocaleString() || '0'}</h4>
-  </div>
-);
 
-/**
- * Dashboard Overview Tab
- */
-const DashboardOverview = () => {
-  const { data: stats, isLoading } = useGetAdminStatsQuery();
-  const { data: latestArticlesData } = useGetAdminArticlesQuery({ ordering: '-created_at', limit: 5 });
-  const { data: latestUsersData } = useGetAdminUsersQuery({ ordering: '-date_joined', limit: 5 });
+const SuperAdminDashboard = () => {
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('users');
+  const [selectedUser, setSelectedUser] = useState(null);
 
-  const overviewStats = [
-    {
-      title: 'Total Users',
-      value: stats?.total_users,
-      icon: Users,
-      color: 'primary'
-    },
-    {
-      title: 'Total Articles',
-      value: stats?.total_articles,
-      icon: FileText,
-      color: 'accent'
-    },
-    {
-      title: 'Under Review',
-      value: stats?.under_review,
-      icon: Search,
-      color: 'orange'
-    },
-    {
-      title: 'Published',
-      value: stats?.published,
-      icon: BookOpen,
-      color: 'green'
-    }
-  ];
+  // Users
+  const {
+    data: usersData,
+    isLoading: usersLoading,
+    isError: usersError,
+    refetch: refetchUsers,
+  } = useGetAdminUsersQuery();
 
-  if (isLoading) {
-    return (
-      <div className="p-12 text-center">
-        <Loader2 className="w-12 h-12 text-accent animate-spin mx-auto mb-4" />
-        <h3 className="text-xl font-bold text-primary mb-2">Loading Stats...</h3>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {overviewStats.map((stat, index) => (
-          <StatsCard key={index} {...stat} />
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Recent Articles */}
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-bold text-primary">Latest Articles</h3>
-            <button className="text-sm text-accent font-medium hover:opacity-80">View All</button>
-          </div>
-          <div className="space-y-4">
-            {latestArticlesData?.results?.map((article) => (
-              <div key={article.slug} className="flex items-start gap-4 p-4 bg-[#F7FAFC] rounded-2xl">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-primary truncate">{article.title}</p>
-                  <p className="text-xs text-gray-500">{article.author_name} • {article.category_name}</p>
-                  <p className="text-xs text-gray-400 mt-1">{new Date(article.created_at).toLocaleDateString()}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Recent Users */}
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-bold text-primary">Latest Users</h3>
-            <button className="text-sm text-accent font-medium hover:opacity-80">View All</button>
-          </div>
-          <div className="space-y-4">
-            {latestUsersData?.results?.map((user) => (
-              <div key={user.id} className="flex items-center gap-4 p-4 bg-[#F7FAFC] rounded-2xl">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold text-sm">
-                  {user.username?.[0]?.toUpperCase() || 'U'}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-primary truncate">{user.first_name} {user.last_name}</p>
-                  <p className="text-xs text-gray-500 truncate">{user.email}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                      user.role === 'reviewer' ? 'bg-blue-50 text-blue-600' :
-                      user.role === 'moderator' ? 'bg-orange-50 text-orange-600' :
-                      'bg-gray-50 text-gray-600'
-                    }`}>
-                      {user.role}
-                    </span>
-                    <span className="text-xs text-gray-400">{new Date(user.date_joined).toLocaleDateString()}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
+  const usersArray = useMemo(
+    () =>
+      (Array.isArray(usersData) ? usersData : usersData?.results || usersData?.data || []),
+    [usersData]
   );
-};
 
-/**
- * User Management Tab
- */
-const UserManagement = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState('all');
-  
-  const { data: usersData, isLoading, refetch } = useGetAdminUsersQuery({ 
-    search: searchTerm,
-    role: roleFilter === 'all' ? undefined : roleFilter
-  });
-  const [updateUser] = useUpdateAdminUserMutation();
-  const [deleteUser] = useDeleteUserMutation();
+  // Articles
+  const {
+    data: articlesData,
+    isLoading: articlesLoading,
+    isError: articlesError,
+    refetch: refetchArticles,
+  } = useGetAdminArticlesQuery();
 
-  const usersList = useMemo(() => {
-    if (!usersData) return [];
-    if (Array.isArray(usersData)) return usersData;
-    if (Array.isArray(usersData.results)) return usersData.results;
-    return [];
-  }, [usersData]);
-
-  const handleRoleChange = async (userId, newRole) => {
-    try {
-      await updateUser({ id: userId, role: newRole }).unwrap();
-      toast.success('User role updated');
-      refetch();
-    } catch (err) {
-      toast.error('Failed to update role');
-    }
-  };
-
-  const handleVerify = async (userId) => {
-    try {
-      await updateUser({ id: userId, is_verified: true }).unwrap();
-      toast.success('User verified');
-      refetch();
-    } catch (err) {
-      toast.error('Failed to verify user');
-    }
-  };
-
-  const handleToggleStatus = async (userId, currentStatus) => {
-    try {
-      await updateUser({ id: userId, is_active: !currentStatus }).unwrap();
-      toast.success(`User ${!currentStatus ? 'restored' : 'suspended'}`);
-      refetch();
-    } catch (err) {
-      toast.error('Failed to update status');
-    }
-  };
-
-  const handleDelete = async (userId) => {
-    if (!window.confirm('Are you sure you want to delete this user?')) return;
-    try {
-      await deleteUser(userId).unwrap();
-      toast.success('User deleted');
-      refetch();
-    } catch (err) {
-      toast.error('Failed to delete user');
-    }
-  };
-
-  if (isLoading) return <Loader2 className="w-8 h-8 animate-spin mx-auto mt-20" />;
-
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col lg:flex-row gap-4 bg-white p-6 rounded-3xl border border-gray-100">
-        <div className="flex-1 relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-          <input
-            type="text"
-            placeholder="Search by name, email or username..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-6 py-3 bg-[#F7FAFC] rounded-2xl outline-none focus:ring-2 focus:ring-primary/10 transition-all"
-          />
-        </div>
-        <select
-          value={roleFilter}
-          onChange={(e) => setRoleFilter(e.target.value)}
-          className="px-6 py-3 bg-[#F7FAFC] rounded-2xl outline-none"
-        >
-          <option value="all">All Roles</option>
-          <option value="user">User</option>
-          <option value="reviewer">Reviewer</option>
-          <option value="moderator">Moderator</option>
-          <option value="admin">Admin</option>
-        </select>
-      </div>
-
-      <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead className="bg-[#FBFCFE]">
-            <tr>
-              <th className="px-8 py-5 text-[10px] font-bold text-gray-400 uppercase tracking-widest">User</th>
-              <th className="px-8 py-5 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Role</th>
-              <th className="px-8 py-5 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Verification</th>
-              <th className="px-8 py-5 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Status</th>
-              <th className="px-8 py-5 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50">
-            {usersList.map((user) => (
-              <tr key={user.id} className="hover:bg-[#F8FAFC] transition-colors">
-                <td className="px-8 py-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary">
-                      {user.username?.[0]?.toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="font-bold text-primary">{user.first_name} {user.last_name}</p>
-                      <p className="text-xs text-gray-400">{user.email}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-8 py-6">
-                  <select
-                    value={user.role}
-                    onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                    className="text-sm font-medium p-1 rounded bg-gray-50 border-none"
-                  >
-                    <option value="user">User</option>
-                    <option value="reviewer">Reviewer</option>
-                    <option value="moderator">Moderator</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </td>
-                <td className="px-8 py-6">
-                  <div className="flex items-center gap-2">
-                    {user.is_verified ? (
-                      <span className="flex items-center gap-1 text-green-600 text-xs font-bold bg-green-50 px-2 py-1 rounded-full">
-                        <CheckCircle className="w-3 h-3" /> Verified
-                      </span>
-                    ) : (
-                      <button 
-                        onClick={() => handleVerify(user.id)}
-                        className="text-xs font-bold text-accent hover:underline"
-                      >
-                        Verify Now
-                      </button>
-                    )}
-                  </div>
-                </td>
-                <td className="px-8 py-6">
-                  <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${
-                    user.is_active ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
-                  }`}>
-                    {user.is_active ? 'Active' : 'Suspended'}
-                  </span>
-                </td>
-                <td className="px-8 py-6">
-                  <div className="flex items-center justify-center gap-2">
-                    <button 
-                      onClick={() => handleToggleStatus(user.id, user.is_active)}
-                      className={`p-2 rounded-xl transition-all ${
-                        user.is_active ? 'text-orange-500 hover:bg-orange-50' : 'text-green-500 hover:bg-green-50'
-                      }`}
-                      title={user.is_active ? 'Suspend' : 'Restore'}
-                    >
-                      {user.is_active ? <UserX className="w-5 h-5" /> : <UserCheck className="w-5 h-5" />}
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(user.id)}
-                      className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                      title="Delete"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+  const articlesArray = useMemo(
+    () =>
+      (Array.isArray(articlesData)
+        ? articlesData
+        : articlesData?.results || articlesData?.data || []),
+    [articlesData]
   );
-};
 
-/**
- * Article Management Tab
- */
-const ArticleManagement = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  
-  const { data: articlesData, isLoading, refetch } = useGetAdminArticlesQuery({
-    search: searchTerm,
-    status: statusFilter === 'all' ? undefined : statusFilter
-  });
-  
   const [updateArticle] = useUpdateArticleMutation();
   const [deleteArticle] = useDeleteArticleMutation();
-  const [moderateArticle] = useModerateArticleMutation();
 
-  const articlesList = useMemo(() => {
-    if (!articlesData) return [];
-    if (Array.isArray(articlesData)) return articlesData;
-    if (Array.isArray(articlesData.results)) return articlesData.results;
-    return [];
-  }, [articlesData]);
+  // Journals
+  const {
+    data: journalsData,
+    isLoading: journalsLoading,
+    isError: journalsError,
+    error: journalsErrorDetails,
+    refetch: refetchJournals,
+  } = useGetJournalsQuery();
 
-  const handleStatusChange = async (slug, newStatus) => {
+  const journalsArray = useMemo(
+    () =>
+      (Array.isArray(journalsData)
+        ? journalsData
+        : journalsData?.results || journalsData?.data || []),
+    [journalsData]
+  );
+
+  const [journalsFetchErrorMessage, setJournalsFetchErrorMessage] = useState(null);
+
+  useEffect(() => {
+    if (journalsError && journalsErrorDetails) {
+      console.error('🚨 [JOURNAL FETCH ERROR STATUS]:', journalsErrorDetails?.status);
+      console.error(
+        '🚨 [JOURNAL FETCH ERROR DATA]:',
+        JSON.stringify(journalsErrorDetails?.data, null, 2)
+      );
+      setJournalsFetchErrorMessage(
+        journalsErrorDetails?.data?.detail ||
+          journalsErrorDetails?.data?.message ||
+          `Failed to load journals (HTTP ${journalsErrorDetails?.status || 'Unknown'}).`
+      );
+    }
+  }, [journalsError, journalsErrorDetails]);
+
+  // Journals
+  const [showJournalForm, setShowJournalForm] = useState(false);
+  const [newJournal, setNewJournal] = useState({
+    name: '',
+    field_of_study: '',
+    impact_factor: '',
+    publication_type: 'open_access',
+    publication_fee: '',
+    font_guidelines: '',
+    margin_guidelines: '',
+    figure_guidelines: '',
+  });
+
+  const [createJournal, createJournalState] = useCreateJournalMutation();
+
+  // Nominate journal (still not implemented)
+  const [updateJournal, updateJournalState] = useUpdateJournalMutation();
+  const [deleteJournal, deleteJournalState] = useDeleteJournalMutation();
+
+  const [nominationForm, setNominationForm] = useState({
+
+    articleSlug: '',
+    journalId: '',
+  });
+
+  // Notifications
+  const [targetType, setTargetType] = useState('all'); // 'all' | 'specific'
+  const [selectedUserId, setSelectedUserId] = useState('');
+  const [notificationTitle, setNotificationTitle] = useState('');
+  const [notificationMessage, setNotificationMessage] = useState('');
+
+  const [sendNotification, sendNotificationState] = useSendNotificationMutation();
+
+  const [approveSubsidyError, setApproveSubsidyError] = useState(null);
+  const [approvingSlug, setApprovingSlug] = useState(null);
+
+  const handleApproveSubsidy = async (slug) => {
+    setApproveSubsidyError(null);
+    setApprovingSlug(slug);
     try {
-      await moderateArticle({ slug, status: newStatus }).unwrap();
-      toast.success(`Article ${newStatus}`);
-      refetch();
-    } catch (err) {
-      toast.error('Failed to update status');
+      await updateArticle({
+        slug,
+        formData: { subsidy_status: 'approved' },
+      }).unwrap();
+      refetchArticles();
+    } catch (error) {
+      console.error(error);
+      const message =
+        error?.data?.detail ||
+        error?.data?.message ||
+        error?.error ||
+        `Failed to approve subsidy for ${slug}.`;
+      setApproveSubsidyError(message);
+    } finally {
+      setApprovingSlug(null);
     }
   };
 
-  const handleDelete = async (slug) => {
-    if (!window.confirm('Delete this article?')) return;
+  const handleDeleteArticle = async (slug) => {
+    if (!window.confirm('Delete this manuscript?')) return;
+
     try {
       await deleteArticle(slug).unwrap();
-      toast.success('Article deleted');
-      refetch();
-    } catch (err) {
-      toast.error('Failed to delete');
+      refetchArticles();
+      window.alert('Manuscript deleted successfully.');
+    } catch (error) {
+      console.error(error);
+      window.alert('Failed to delete manuscript. Please try again.');
     }
   };
 
-  if (isLoading) return <Loader2 className="w-8 h-8 animate-spin mx-auto mt-20" />;
-
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col lg:flex-row gap-4 bg-white p-6 rounded-3xl border border-gray-100">
-        <div className="flex-1 relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-          <input
-            type="text"
-            placeholder="Search articles..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-6 py-3 bg-[#F7FAFC] rounded-2xl outline-none focus:ring-2 focus:ring-primary/10 transition-all"
-          />
-        </div>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-6 py-3 bg-[#F7FAFC] rounded-2xl outline-none"
-        >
-          <option value="all">All Status</option>
-          <option value="published">Published</option>
-          <option value="under_review">Under Review</option>
-          <option value="draft">Draft</option>
-          <option value="rejected">Rejected</option>
-        </select>
-        <Link 
-          to="/submit" 
-          className="px-6 py-3 bg-accent text-white rounded-2xl font-bold flex items-center gap-2 hover:opacity-90 shadow-lg shadow-teal-500/20"
-        >
-          <Plus className="w-5 h-5" /> New Article
-        </Link>
-      </div>
-
-      <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden">
-        <table className="w-full text-left">
-          <thead className="bg-[#FBFCFE]">
-            <tr>
-              <th className="px-8 py-5 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Article</th>
-              <th className="px-8 py-5 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Author</th>
-              <th className="px-8 py-5 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Status</th>
-              <th className="px-8 py-5 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50">
-            {articlesList.map((article) => (
-              <tr key={article.slug} className="hover:bg-[#F8FAFC] transition-colors">
-                <td className="px-8 py-6">
-                  <p className="font-bold text-primary truncate max-w-xs">{article.title}</p>
-                  <p className="text-xs text-gray-400">{article.category_name}</p>
-                </td>
-                <td className="px-8 py-6">
-                  <p className="text-sm font-medium text-gray-600">{article.author_name}</p>
-                </td>
-                <td className="px-8 py-6">
-                  <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${
-                    article.status === 'published' ? 'bg-green-50 text-green-600' :
-                    article.status === 'under_review' ? 'bg-yellow-50 text-yellow-600' :
-                    'bg-gray-50 text-gray-600'
-                  }`}>
-                    {article.status}
-                  </span>
-                </td>
-                <td className="px-8 py-6">
-                  <div className="flex items-center justify-center gap-2">
-                    <Link to={`/article/${article.slug}`} className="p-2 text-primary hover:bg-primary/5 rounded-xl"><Eye className="w-5 h-5" /></Link>
-                    <button onClick={() => handleDelete(article.slug)} className="p-2 text-red-500 hover:bg-red-50 rounded-xl"><Trash2 className="w-5 h-5" /></button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-};
-
-/**
- * Peer Review Tab
- */
-const PeerReviewManagement = () => {
-  const { data: pendingArticles, isLoading, refetch } = useGetAdminArticlesQuery({ status: 'under_review' });
-  const [moderateArticle] = useModerateArticleMutation();
-  const [assignReviewer] = useAssignReviewerMutation();
-
-  const pendingList = useMemo(() => {
-    if (!pendingArticles) return [];
-    if (Array.isArray(pendingArticles)) return pendingArticles;
-    if (Array.isArray(pendingArticles.results)) return pendingArticles.results;
-    return [];
-  }, [pendingArticles]);
-
-  const handleModerate = async (slug, status) => {
-    const feedback = status === 'rejected' ? window.prompt('Provide feedback for rejection:') : '';
-    if (status === 'rejected' && feedback === null) return;
+  const handleAddJournal = async (e) => {
+    e.preventDefault();
 
     try {
-      await moderateArticle({ slug, status, feedback }).unwrap();
-      toast.success(`Article ${status}`);
-      refetch();
-    } catch (err) {
-      toast.error('Moderation failed');
-    }
-  };
+      await createJournal({
+        name: newJournal.name.trim(),
+        field_of_study: newJournal.field_of_study.trim(),
+        impact_factor: newJournal.impact_factor,
+        publication_type: newJournal.publication_type,
+        publication_fee: newJournal.publication_fee || 0,
+        font_guidelines: newJournal.font_guidelines || '',
+        margin_guidelines: newJournal.margin_guidelines || '',
+        figure_guidelines: newJournal.figure_guidelines || '',
+      }).unwrap();
 
-  if (isLoading) return <Loader2 className="w-8 h-8 animate-spin mx-auto mt-20" />;
+      window.alert('Journal created successfully.');
+      setShowJournalForm(false);
+      setNewJournal({
+        name: '',
+        field_of_study: '',
+        impact_factor: '',
+        publication_type: 'open_access',
+        publication_fee: '',
+        font_guidelines: '',
+        margin_guidelines: '',
+        figure_guidelines: '',
+      });
 
-  return (
-    <div className="space-y-6">
-      <h2 className="text-xl font-bold text-primary">Articles Pending Moderation</h2>
-      <div className="grid grid-cols-1 gap-6">
-        {pendingList.map((article) => (
-          <div key={article.slug} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-              <h3 className="font-bold text-primary text-lg mb-1">{article.title}</h3>
-              <p className="text-sm text-gray-500 mb-2">by {article.author_name} • {article.category_name}</p>
-              <div className="flex items-center gap-4 text-xs font-bold text-gray-400">
-                <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(article.created_at).toLocaleDateString()}</span>
-                {article.pdf_file && <a href={article.pdf_file} target="_blank" className="flex items-center gap-1 text-accent hover:underline"><FileText className="w-3 h-3" /> View PDF</a>}
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <button 
-                onClick={() => handleModerate(article.slug, 'published')}
-                className="px-5 py-2.5 bg-green-600 text-white rounded-xl text-sm font-bold hover:bg-green-700 transition-all"
-              >
-                Approve & Publish
-              </button>
-              <button 
-                onClick={() => handleModerate(article.slug, 'rejected')}
-                className="px-5 py-2.5 bg-red-600 text-white rounded-xl text-sm font-bold hover:bg-red-700 transition-all"
-              >
-                Reject
-              </button>
-            </div>
-          </div>
-        ))}
-        {pendingList.length === 0 && (
-          <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
-            <ShieldCheck className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-400 font-medium">No articles currently pending review.</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-/**
- * Categories Management Tab
- */
-const CategoriesManagement = () => {
-  const { data: categories, isLoading, refetch } = useGetAdminCategoriesQuery();
-  const [createCategory] = useCreateCategoryMutation();
-  const [updateCategory] = useUpdateCategoryMutation();
-  const [deleteCategory] = useDeleteCategoryMutation();
-
-  const categoriesList = useMemo(() => {
-    if (!categories) return [];
-    if (Array.isArray(categories)) return categories;
-    if (Array.isArray(categories.results)) return categories.results;
-    return [];
-  }, [categories]);
-
-  const handleAddCategory = async () => {
-    const name = window.prompt('Category Name:');
-    if (!name) return;
-    const description = window.prompt('Description:');
-    try {
-      await createCategory({ name, description }).unwrap();
-      toast.success('Category created');
-      refetch();
-    } catch (err) {
-      toast.error('Failed to create category');
-    }
-  };
-
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete category?')) return;
-    try {
-      await deleteCategory(id).unwrap();
-      toast.success('Category deleted');
-      refetch();
-    } catch (err) {
-      toast.error('Failed to delete');
-    }
-  };
-
-  if (isLoading) return <Loader2 className="w-8 h-8 animate-spin mx-auto mt-20" />;
-
-  return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-primary">Manage Categories</h2>
-        <button 
-          onClick={handleAddCategory}
-          className="flex items-center gap-2 px-5 py-2.5 bg-accent text-white rounded-xl text-sm font-bold hover:opacity-90"
-        >
-          <Plus className="w-4 h-4" /> Add Category
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {categoriesList.map((category) => (
-          <div key={category.id} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm relative group">
-            <button 
-              onClick={() => handleDelete(category.id)}
-              className="absolute top-4 right-4 p-2 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 rounded-xl"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-            <div className="w-12 h-12 bg-primary/5 rounded-2xl flex items-center justify-center mb-4">
-              <Tag className="w-6 h-6 text-primary" />
-            </div>
-            <h3 className="font-bold text-primary text-lg mb-1">{category.name}</h3>
-            <p className="text-sm text-gray-500 mb-4">{category.description}</p>
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-accent uppercase tracking-widest">{category.slug}</span>
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{category.article_count || 0} Articles</span>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-
-// Main Super Admin Dashboard Component
-const SuperAdminDashboard = () => {
-  const [activeTab, setActiveTab] = useState('overview');
-  const dispatch = useDispatch();
-  const { user } = useSelector((state) => state.auth);
-
-  const isAdmin = user?.is_staff === true || user?.role === 'admin' || user?.role === 'super_admin';
-  
-  if (!isAdmin) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  const sidebarItems = [
-    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-    { id: 'users', label: 'Users', icon: Users },
-    { id: 'articles', label: 'Articles', icon: FileText },
-    { id: 'reviews', label: 'Moderation', icon: ShieldCheck },
-    { id: 'categories', label: 'Categories', icon: Layers },
-    { id: 'settings', label: 'Settings', icon: Settings },
-  ];
-
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'overview': return <DashboardOverview />;
-      case 'users': return <UserManagement />;
-      case 'articles': return <ArticleManagement />;
-      case 'reviews': return <PeerReviewManagement />;
-      case 'categories': return <CategoriesManagement />;
-      case 'settings': return (
-        <div className="text-center py-20 bg-white rounded-3xl border border-gray-100 shadow-sm">
-          <Settings className="w-16 h-16 text-gray-200 mx-auto mb-4" />
-          <h3 className="text-xl font-bold text-primary mb-2">System Settings</h3>
-          <p className="text-gray-400 font-medium">Coming soon.</p>
-        </div>
+      refetchJournals();
+    } catch (error) {
+      console.error(error);
+      window.alert(
+        error?.data?.message ||
+          error?.data?.detail ||
+          error?.error ||
+          'Failed to create journal. Please try again.'
       );
-      default: return <DashboardOverview />;
     }
   };
 
+
+  const handleDeleteJournal = async (id) => {
+    if (!window.confirm('Delete this journal?')) return;
+
+    try {
+      await deleteJournal(id).unwrap();
+      window.alert('Journal deleted successfully.');
+      refetchJournals();
+    } catch (error) {
+      console.error(error);
+      window.alert(
+        error?.data?.message ||
+          error?.data?.detail ||
+          error?.error ||
+          'Failed to delete journal. Please try again.'
+      );
+    }
+  };
+
+  const handleNominateJournal = (e) => {
+    e.preventDefault();
+
+    console.warn('Nomination mapping requires adding useNominateJournalMutation to baseApi.js.');
+    window.alert('Nomination mapping requires adding useNominateJournalMutation to baseApi.js.');
+  };
+
+
+  const handleSendNotification = async (e) => {
+    e.preventDefault();
+
+    const payload = {
+      title: notificationTitle,
+      message: notificationMessage,
+      send_to_all: targetType === 'all',
+      user_id: targetType === 'specific' ? selectedUserId : null,
+    };
+
+    try {
+      await sendNotification(payload).unwrap();
+      window.alert('Notification sent successfully.');
+      setNotificationTitle('');
+      setNotificationMessage('');
+      setSelectedUserId('');
+    } catch (error) {
+      console.error(error);
+      window.alert('Failed to send notification. Please try again.');
+    }
+  };
+
+  const subtitleText = useMemo(() => {
+    switch (activeTab) {
+      case 'users':
+        return 'Users Management';
+      case 'articles':
+        return 'Manuscripts & Data';
+      case 'journals':
+        return 'Academic Journals';
+      case 'recommendations':
+        return 'Nominate Journal';
+      case 'notifications':
+        return 'Notifications System';
+      default:
+        return 'Dashboard';
+    }
+  }, [activeTab]);
+
+  const resetUserSelection = () => setSelectedUser(null);
+
   return (
-    <div className="flex min-h-screen bg-[#F8FAFC]">
+    <div className="flex h-screen bg-zinc-100 text-slate-800 font-sans antialiased">
       {/* Sidebar */}
-      <aside className="w-72 bg-white border-r border-gray-100 flex flex-col fixed h-screen z-50">
-        <div className="p-8 flex items-center gap-3">
-          <div className="bg-primary p-2 rounded-xl">
-            <BookOpen className="text-accent w-6 h-6" />
-          </div>
-          <div>
-            <h1 className="text-xl font-serif font-bold text-primary tracking-tight leading-none">ScholarLink</h1>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Super Admin</p>
-          </div>
+      <aside className="w-72 bg-slate-900 text-slate-100 flex flex-col shadow-xl">
+        <div className="p-5 border-b border-slate-800 flex items-center justify-between">
+          <span className="text-lg font-bold tracking-wide text-indigo-300">Super Admin</span>
+          <span className="w-9 h-9 rounded-xl bg-slate-800 text-indigo-200 flex items-center justify-center text-sm font-bold">SA</span>
         </div>
 
-        <nav className="flex-1 px-4 space-y-2 py-4">
-          {sidebarItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all duration-200 group
-                ${activeTab === item.id
-                  ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                  : 'text-gray-500 hover:bg-[#F7FAFC] hover:text-primary'}`}
-            >
-              <div className="flex items-center gap-4">
-                <item.icon className="w-5 h-5" />
-                <span className="text-sm font-bold tracking-tight">{item.label}</span>
-              </div>
-              {activeTab === item.id && <ChevronRight className="w-4 h-4" />}
-            </button>
-          ))}
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+          <button
+            onClick={() => {
+              setActiveTab('users');
+              resetUserSelection();
+            }}
+            className={`w-full flex items-center px-4 py-3 text-sm font-semibold rounded-xl transition ${
+              activeTab === 'users'
+                ? 'bg-indigo-600 text-white shadow-md'
+                : 'text-slate-300 hover:bg-slate-800 hover:text-slate-100'
+            }`}
+          >
+            Users Management
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveTab('articles');
+              resetUserSelection();
+            }}
+            className={`w-full flex items-center px-4 py-3 text-sm font-semibold rounded-xl transition ${
+              activeTab === 'articles'
+                ? 'bg-indigo-600 text-white shadow-md'
+                : 'text-slate-300 hover:bg-slate-800 hover:text-slate-100'
+            }`}
+          >
+            Manuscripts &amp; Data
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveTab('journals');
+              resetUserSelection();
+            }}
+            className={`w-full flex items-center px-4 py-3 text-sm font-semibold rounded-xl transition ${
+              activeTab === 'journals'
+                ? 'bg-indigo-600 text-white shadow-md'
+                : 'text-slate-300 hover:bg-slate-800 hover:text-slate-100'
+            }`}
+          >
+            Academic Journals
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveTab('recommendations');
+              resetUserSelection();
+            }}
+            className={`w-full flex items-center px-4 py-3 text-sm font-semibold rounded-xl transition ${
+              activeTab === 'recommendations'
+                ? 'bg-indigo-600 text-white shadow-md'
+                : 'text-slate-300 hover:bg-slate-800 hover:text-slate-100'
+            }`}
+          >
+            Nominate Journal
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveTab('notifications');
+              resetUserSelection();
+            }}
+            className={`w-full flex items-center px-4 py-3 text-sm font-semibold rounded-xl transition ${
+              activeTab === 'notifications'
+                ? 'bg-indigo-600 text-white shadow-md'
+                : 'text-slate-300 hover:bg-slate-800 hover:text-slate-100'
+            }`}
+          >
+            Notifications System
+          </button>
         </nav>
 
-        <div className="p-8 border-t border-gray-50">
-          <button 
-            onClick={() => dispatch(logout())}
-            className="flex items-center gap-4 text-red-500 font-bold text-sm hover:opacity-80 transition-opacity w-full"
+        <div className="p-4 border-t border-slate-800">
+          <button
+            onClick={() => navigate('/')}
+            className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 py-2 px-4 rounded-lg text-xs transition font-semibold text-center"
           >
-            <LogOut className="w-5 h-5" />
-            Logout
+            Exit Dashboard
           </button>
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <main className="flex-1 ml-72">
-        <header className="h-20 bg-white border-b border-gray-100 px-12 flex items-center justify-between sticky top-0 z-40">
-          <h2 className="text-lg font-bold text-primary capitalize">
-            {sidebarItems.find(i => i.id === activeTab)?.label}
-          </h2>
-
-          <div className="flex items-center gap-6">
-            <Link to="/" className="text-sm font-bold text-gray-400 hover:text-primary transition-colors">Back to App</Link>
-            <div className="w-px h-6 bg-gray-200"></div>
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <p className="text-sm font-bold text-primary leading-none mb-1">{user?.first_name || user?.username}</p>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Admin</p>
-              </div>
-              <div className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center font-bold">
-                {user?.username?.[0]?.toUpperCase()}
-              </div>
+      {/* Main */}
+      <main className="flex-1 flex flex-col overflow-hidden">
+        {/* Top bar */}
+        <header className="bg-white border-b border-zinc-200 h-16 flex items-center justify-between px-8">
+          <div>
+            <div className="text-xs font-semibold text-indigo-700 uppercase tracking-wider">Super Administration</div>
+            <h1 className="text-xl font-bold text-slate-900">{subtitleText}</h1>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="hidden sm:flex items-center gap-3 rounded-xl bg-zinc-100 px-4 py-2">
+              <span className="text-sm font-semibold text-slate-600">Realtime Sync</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-600" />
             </div>
           </div>
         </header>
 
-        <div className="p-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          {renderContent()}
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-8">
+          {/* TAB 1: Users */}
+          {activeTab === 'users' && (
+            <section className="space-y-6">
+              {!selectedUser ? (
+                <div className="bg-white rounded-2xl shadow-sm border border-zinc-200 overflow-hidden">
+                  <div className="p-6 border-b border-zinc-200 flex items-center justify-between">
+                    <h2 className="text-lg font-bold text-slate-900">Registered Users</h2>
+                    <button
+                      className="text-sm font-semibold text-indigo-700 hover:text-indigo-800"
+                      onClick={() => refetchUsers()}
+                      disabled={usersLoading}
+                    >
+                      {usersLoading ? 'Refreshing…' : 'Refresh'}
+                    </button>
+                  </div>
+
+                  {usersError ? (
+                    <div className="p-6">
+                      <p className="text-sm text-rose-700 font-semibold">
+                        Failed to load users.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="p-2">
+                      <table className="w-full text-left border-collapse">
+                        <thead className="bg-zinc-50 border-b text-zinc-600 text-xs font-semibold uppercase">
+                          <tr>
+                            <th className="p-4">Username</th>
+                            <th className="p-4">Email</th>
+                            <th className="p-4">Institution</th>
+                            <th className="p-4">Role</th>
+                            <th className="p-4 text-center">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="text-sm text-slate-700 divide-y">
+                          {(usersArray || []).map((u) => (
+                            <tr key={u?.id ?? u?.username} className="hover:bg-zinc-50">
+                              <td className="p-4 font-semibold text-slate-900">{u?.username || '—'}</td>
+                              <td className="p-4">{u?.email || '—'}</td>
+                              <td className="p-4">{u?.institution || '—'}</td>
+                              <td className="p-4">
+                                <span
+                                  className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                                    u?.role === 'Admin'
+                                      ? 'bg-indigo-100 text-indigo-800'
+                                      : 'bg-emerald-100 text-emerald-800'
+                                  }`}
+                                >
+                                  {u?.role || '—'}
+                                </span>
+                              </td>
+                              <td className="p-4 text-center">
+                                <button
+                                  onClick={() => setSelectedUser(u)}
+                                  className="text-indigo-700 hover:text-indigo-900 font-semibold"
+                                >
+                                  View Full Profile
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+
+                          {!usersLoading && (usersArray || []).length === 0 && (
+                            <tr>
+                              <td colSpan={5} className="p-6 text-center text-sm text-zinc-500">
+                                No users found.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="bg-white rounded-2xl shadow-sm border border-zinc-200 p-6 max-w-3xl">
+                  <div className="flex justify-between items-start border-b border-zinc-200 pb-4 mb-6">
+                    <div>
+                      <h2 className="text-xl font-bold text-slate-900">
+                        {selectedUser?.first_name || '—'} {selectedUser?.last_name || ''}
+                      </h2>
+                      <p className="text-sm text-zinc-500">@{selectedUser?.username || '—'}</p>
+                    </div>
+                    <button
+                      onClick={() => setSelectedUser(null)}
+                      className="text-sm font-semibold text-indigo-700 hover:text-indigo-800"
+                    >
+                      Back to List
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-4 mb-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm flex-1">
+                      <div>
+                        <div className="text-xs text-zinc-500 font-semibold uppercase">Institution</div>
+                        <div className="font-semibold text-slate-800">{selectedUser?.institution || '—'}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-zinc-500 font-semibold uppercase">Email</div>
+                        <div className="font-semibold text-slate-800">{selectedUser?.email || '—'}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-zinc-500 font-semibold uppercase">Field of Study</div>
+                        <div className="font-semibold text-slate-800">
+                          {selectedUser?.field_of_study || selectedUser?.academic_field || '—'}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-zinc-500 font-semibold uppercase">Academic Status</div>
+                        <div className="font-semibold text-slate-800">
+                          {selectedUser?.academic_status || '—'}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-zinc-500 font-semibold uppercase">Account State</div>
+                        <div className="font-semibold">
+                          <span
+                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
+                              selectedUser?.is_active
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : 'bg-rose-100 text-rose-800'
+                            }`}
+                          >
+                            {selectedUser?.is_active ? 'Active' : 'Inactive'}
+                          </span>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-zinc-500 font-semibold uppercase">System Role</div>
+                        <div className="font-semibold text-slate-800">{selectedUser?.role || '—'}</div>
+                      </div>
+                    </div>
+
+                    <div className="shrink-0">
+                      <div className="text-xs text-zinc-500 font-semibold uppercase mb-1 text-right">Total Academic Points</div>
+                      <div className="inline-flex items-center px-4 py-2 rounded-xl bg-indigo-50 border border-indigo-100">
+                        <span className="text-xl font-bold text-indigo-800">{selectedUser?.points ?? 0}</span>
+                        <span className="ml-2 text-sm font-semibold text-indigo-700">Points</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {(() => {
+                    const userArticles = (articlesArray || []).filter((article) => {
+                      const authorId =
+                        typeof article?.author === 'object' ? article?.author?.id : null;
+                      const authorUsername =
+                        typeof article?.author === 'object' ? article?.author?.username : null;
+                      return authorId === selectedUser.id || authorUsername === selectedUser.username;
+                    });
+
+                    return (
+                      <div className="mt-6">
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="text-sm font-bold text-slate-900">Authored Manuscripts</h3>
+                        </div>
+
+                        {userArticles.length === 0 ? (
+                          <p className="text-sm text-zinc-500">No manuscripts submitted by this researcher yet.</p>
+                        ) : (
+                          <table className="w-full text-left border-collapse">
+                            <thead className="bg-zinc-50 border-b text-zinc-600 text-xs font-semibold uppercase">
+                              <tr>
+                                <th className="p-4">Title</th>
+                                <th className="p-4">Nominated Journal</th>
+                                <th className="p-4">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody className="text-sm text-slate-700 divide-y">
+                              {userArticles.map((article) => {
+                                const nominatedJournalName =
+                                  typeof article?.nominated_journal === 'object'
+                                    ? article?.nominated_journal?.name || 'None'
+                                    : article?.nominated_journal || 'Not Specified';
+
+                                const subsidy = article?.subsidy_status;
+                                const statusText =
+                                  subsidy === 'pending_review'
+                                    ? 'Pending Review'
+                                    : subsidy === 'approved'
+                                      ? 'Fully Covered'
+                                      : '—';
+
+                                return (
+                                  <tr key={article?.slug || article?.id} className="hover:bg-zinc-50">
+                                    <td className="p-4 font-semibold text-slate-900 max-w-xs truncate">{article?.title || '—'}</td>
+                                    <td className="p-4">{nominatedJournalName}</td>
+                                    <td className="p-4">{statusText}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* TAB 2: Articles */}
+          {activeTab === 'articles' && (
+            <section className="bg-white rounded-2xl shadow-sm border border-zinc-200 overflow-hidden">
+              <div className="p-6 border-b border-zinc-200 flex items-center justify-between">
+                <h2 className="text-lg font-bold text-slate-900">Manuscript Comprehensive Logs</h2>
+                <button
+                  className="text-sm font-semibold text-indigo-700 hover:text-indigo-800"
+                  onClick={() => refetchArticles()}
+                  disabled={articlesLoading}
+                >
+                  {articlesLoading ? 'Refreshing…' : 'Refresh'}
+                </button>
+              </div>
+
+              {articlesError ? (
+                <div className="p-6">
+                  <p className="text-sm text-rose-700 font-semibold">Failed to load manuscripts.</p>
+                </div>
+              ) : (
+                <div className="p-2">
+                  <table className="w-full text-left border-collapse">
+                    <thead className="bg-zinc-50 border-b text-zinc-600 text-xs font-semibold uppercase">
+                      <tr>
+                        <th className="p-4">Title</th>
+                        <th className="p-4">Author</th>
+                        <th className="p-4">Nominated Journal</th>
+                        <th className="p-4">Subsidy Status</th>
+                        <th className="p-4 text-center">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-sm text-slate-700 divide-y">
+                      {(articlesArray || []).map((article) => {
+                        const authorName =
+                          typeof article?.author === 'object'
+                            ? article?.author?.username || article?.author?.name || 'Unknown'
+                            : article?.author || 'Unknown';
+
+                        const nominatedJournalName =
+                          typeof article?.nominated_journal === 'object'
+                            ? article?.nominated_journal?.name || 'None'
+                            : article?.nominated_journal || 'Not Specified';
+
+                        const subsidy = article?.subsidy_status;
+
+                        return (
+                          <tr key={article?.slug || article?.id} className="hover:bg-zinc-50">
+                            <td className="p-4 font-semibold text-slate-900 max-w-xs truncate">{article?.title || '—'}</td>
+                            <td className="p-4">{authorName || 'Unknown'}</td>
+                            <td className="p-4 text-indigo-700 font-semibold">{nominatedJournalName}</td>
+                            <td className="p-4">
+                              {subsidy === 'pending_review' ? (
+                                <span className="bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full text-xs font-semibold">
+                                  Pending Review
+                                </span>
+                              ) : subsidy === 'approved' ? (
+                                <span className="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full text-xs font-semibold">
+                                  Fully Covered
+                                </span>
+                              ) : (
+                                <span className="text-zinc-400">—</span>
+                              )}
+                            </td>
+                            <td className="p-4 text-center">
+                              <div className="inline-flex items-center gap-2">
+                                {subsidy === 'pending_review' && (
+                                  <button
+                                    onClick={() => handleApproveSubsidy(article?.slug)}
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition"
+                                  >
+                                    Approve
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => handleDeleteArticle(article?.slug)}
+                                  className="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+
+                      {!articlesLoading && (articlesArray || []).length === 0 && (
+                        <tr>
+                          <td colSpan={5} className="p-6 text-center text-sm text-zinc-500">
+                            No manuscripts found.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* TAB 3: Journals */}
+          {activeTab === 'journals' && (
+            <section className="space-y-6">
+              <div className="flex justify-between items-center gap-4">
+                <h2 className="text-xl font-bold text-slate-900">Academic Journals</h2>
+                <button
+                  onClick={() => setShowJournalForm((v) => !v)}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow transition"
+                >
+                  {showJournalForm ? 'Cancel' : 'Add New Journal'}
+                </button>
+              </div>
+
+              {showJournalForm && (
+                <form
+                  onSubmit={handleAddJournal}
+                  className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm grid grid-cols-1 md:grid-cols-4 gap-4 items-end"
+                >
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-600 mb-1">Journal Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={newJournal.name}
+                      onChange={(e) => setNewJournal((s) => ({ ...s, name: e.target.value }))}
+                      className="w-full p-2.5 border border-zinc-200 rounded-xl text-sm bg-zinc-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-600 mb-1">Field of Study</label>
+                    <input
+                      type="text"
+                      required
+                      value={newJournal.field_of_study}
+                      onChange={(e) => setNewJournal((s) => ({ ...s, field_of_study: e.target.value }))}
+                      className="w-full p-2.5 border border-zinc-200 rounded-xl text-sm bg-zinc-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-600 mb-1">Impact Factor</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      required
+                      value={newJournal.impact_factor}
+                      onChange={(e) => setNewJournal((s) => ({ ...s, impact_factor: e.target.value }))}
+                      className="w-full p-2.5 border border-zinc-200 rounded-xl text-sm bg-zinc-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-600 mb-1">Access Type</label>
+                    <select
+                      value={newJournal.publication_type}
+                      onChange={(e) => setNewJournal((s) => ({ ...s, publication_type: e.target.value }))}
+                      className="w-full p-2.5 border border-zinc-200 rounded-xl text-sm bg-zinc-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                    >
+                      <option value="open_access">Open Access</option>
+                      <option value="subscription">Subscription</option>
+                    </select>
+                  </div>
+
+                  <div className="md:col-span-4">
+                    <button
+                      type="submit"
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-sm font-semibold shadow transition"
+                    >
+                      Save Journal
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              <div className="bg-white rounded-2xl shadow-sm border border-zinc-200 overflow-hidden">
+                <div className="p-4 border-b border-zinc-200 flex items-center justify-between">
+                  <div className="text-sm font-semibold text-slate-900">Available Accredited Journals</div>
+                  <button
+                    className="text-sm font-semibold text-indigo-700 hover:text-indigo-800"
+                    onClick={() => refetchJournals()}
+                    disabled={journalsLoading}
+                  >
+                    {journalsLoading ? 'Refreshing…' : 'Refresh'}
+                  </button>
+                </div>
+
+                {journalsError ? (
+                  <div className="p-6">
+                    <p className="text-sm text-rose-700 font-semibold">
+                      {journalsFetchErrorMessage || 'Failed to load journals.'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="p-2">
+                    <table className="w-full text-left border-collapse">
+                      <thead className="bg-zinc-50 border-b text-zinc-600 text-xs font-semibold uppercase">
+                        <tr>
+                          <th className="p-4">Journal Name</th>
+                          <th className="p-4">Field of Study</th>
+                          <th className="p-4">Impact Factor</th>
+                          <th className="p-4">Access Type</th>
+                          <th className="p-4 text-center">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-sm text-slate-700 divide-y">
+                        {(journalsArray || []).map((j) => {
+                          const publicationType = j?.publication_type || j?.access_type;
+                          return (
+                            <tr key={j?.id || j?.slug || j?.name} className="hover:bg-zinc-50">
+                              <td className="p-4 font-semibold text-slate-900">{j?.name || '—'}</td>
+                              <td className="p-4">{j?.field_of_study || '—'}</td>
+                              <td className="p-4 font-bold text-amber-700">{j?.impact_factor ?? '—'}</td>
+                              <td className="p-4">
+                                <span
+                                  className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                                    publicationType === 'open_access'
+                                      ? 'bg-teal-100 text-teal-800'
+                                      : 'bg-purple-100 text-purple-800'
+                                  }`}
+                                >
+                                  {publicationType === 'open_access' ? 'Open Access' : 'Subscription'}
+                                </span>
+                              </td>
+                              <td className="p-4 text-center">
+                                <button
+                                  onClick={() => handleDeleteJournal(j?.id)}
+                                  className="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition"
+                                >
+                                  Delete
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+
+
+                        {!journalsLoading && (journalsArray || []).length === 0 && (
+                          <tr>
+                            <td colSpan={5} className="p-6 text-center text-sm text-zinc-500">
+                              No journals found.
+                            </td>
+                          </tr>
+
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* TAB 4: Nominate Journal */}
+          {activeTab === 'recommendations' && (
+            <section className="bg-white rounded-2xl shadow-sm border border-zinc-200 p-6 max-w-3xl">
+              <h2 className="text-lg font-bold text-slate-900 mb-2">Nominate Journal for a Manuscript</h2>
+              <p className="text-sm text-zinc-600 mb-6">
+                Map an incoming manuscript to an accredited journal from the system database.
+              </p>
+
+              <form onSubmit={handleNominateJournal} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-600 mb-1">Select Manuscript</label>
+                  <select
+                    required
+                    value={nominationForm.articleSlug}
+                    onChange={(e) => setNominationForm((s) => ({ ...s, articleSlug: e.target.value }))}
+                    className="w-full p-3 border border-zinc-200 rounded-xl text-sm bg-zinc-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  >
+                    <option value="">-- Choose Manuscript --</option>
+                    {(articlesArray || []).map((a) => (
+                      <option key={a?.slug || a?.id} value={a?.slug || ''}>
+                        {a?.title || 'Untitled'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-600 mb-1">Select Accredited Journal</label>
+                  <select
+                    required
+                    value={nominationForm.journalId}
+                    onChange={(e) => setNominationForm((s) => ({ ...s, journalId: e.target.value }))}
+                    className="w-full p-3 border border-zinc-200 rounded-xl text-sm bg-zinc-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  >
+                    <option value="">-- Choose Academic Journal --</option>
+                    {(journalsArray || []).map((j) => (
+                      <option key={j?.id || j?.slug || j?.name} value={j?.id || ''}>
+                        {j?.name || '—'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl text-sm font-semibold shadow-md transition"
+                >
+                  Submit Nomination Mapping
+                </button>
+
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-700">
+                  <span className="font-semibold text-rose-700">Developer Note:</span> Nomination mapping requires adding{' '}
+                  <span className="font-semibold">useNominateJournalMutation</span> to <span className="font-semibold">baseApi.js</span>.
+                </div>
+              </form>
+            </section>
+          )}
+
+          {/* TAB 5: Notifications */}
+          {activeTab === 'notifications' && (
+            <section className="bg-white rounded-2xl shadow-sm border border-zinc-200 p-6 max-w-3xl">
+              <h2 className="text-lg font-bold text-slate-900 mb-2">Send Notifications</h2>
+              <p className="text-sm text-zinc-600 mb-6">Compose and deliver a broadcast or a targeted message to researchers.</p>
+
+              <form onSubmit={handleSendNotification} className="space-y-5">
+                <div>
+                  <div className="text-xs font-semibold text-zinc-600 uppercase tracking-wider mb-2">Target Audience</div>
+
+                  <div className="flex items-center gap-4 flex-wrap">
+                    <label className="inline-flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="targetType"
+                        value="all"
+                        checked={targetType === 'all'}
+                        onChange={() => {
+                          setTargetType('all');
+                          setSelectedUserId('');
+                        }}
+                      />
+                      <span className="text-sm font-semibold text-slate-900">Broadcast to Everyone</span>
+                    </label>
+
+                    <label className="inline-flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="targetType"
+                        value="specific"
+                        checked={targetType === 'specific'}
+                        onChange={() => setTargetType('specific')}
+                      />
+                      <span className="text-sm font-semibold text-slate-900">Specific Researcher Only</span>
+                    </label>
+                  </div>
+                </div>
+
+                {targetType === 'specific' && (
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-600 mb-1">Select Researcher</label>
+                    <select
+                      required
+                      value={selectedUserId}
+                      onChange={(e) => setSelectedUserId(e.target.value)}
+                      className="w-full p-3 border border-zinc-200 rounded-xl text-sm bg-zinc-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                    >
+                      <option value="">-- Choose User --</option>
+                      {(usersArray || []).map((u) => (
+                        <option key={u?.id ?? u?.username} value={u?.id ?? ''}>
+                          {u?.username || '—'} ({u?.institution || '—'})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-600 mb-1">Notification Title</label>
+                  <input
+                    required
+                    type="text"
+                    value={notificationTitle}
+                    onChange={(e) => setNotificationTitle(e.target.value)}
+                    className="w-full p-3 border border-zinc-200 rounded-xl text-sm bg-zinc-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-600 mb-1">Message Content</label>
+                  <textarea
+                    required
+                    rows={5}
+                    value={notificationMessage}
+                    onChange={(e) => setNotificationMessage(e.target.value)}
+                    className="w-full p-3 border border-zinc-200 rounded-xl text-sm bg-zinc-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl text-sm font-semibold shadow-md transition disabled:opacity-60"
+                  disabled={sendNotificationState?.isLoading}
+                >
+                  {sendNotificationState?.isLoading ? 'Sending…' : 'Send Notification'}
+                </button>
+
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-700">
+                  <span className="font-semibold text-indigo-700">Payload:</span> Title and message are sent to{' '}
+                  {targetType === 'all' ? 'everyone.' : 'the selected user.'}
+                </div>
+              </form>
+            </section>
+          )}
         </div>
       </main>
     </div>
@@ -762,3 +985,4 @@ const SuperAdminDashboard = () => {
 };
 
 export default SuperAdminDashboard;
+

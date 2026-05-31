@@ -1,6 +1,6 @@
 /**
  * ManuscriptSubmission Component
- * ScholarLink Academic Platform
+ * [Platform Name] Academic Platform
  * 
  * Features:
  * - PDF Manuscript Submission (multipart/form-data)
@@ -37,7 +37,9 @@ import {
   CheckCircle2,
   MapPin,
   Clock,
-  ExternalLink
+  ExternalLink,
+  FileCheck,
+  AlertTriangle
 } from 'lucide-react';
 import { 
   useCreateArticleMutation, 
@@ -46,7 +48,9 @@ import {
   useGetCategoriesQuery, 
   useGetAdminUsersQuery,
   useModerateArticleMutation,
-  useSendNotificationMutation
+  useSendNotificationMutation,
+  useCheckFormattingEligibilityQuery,
+  useGetMyPointsQuery
 } from '../api/baseApi';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
@@ -58,7 +62,6 @@ const schema = yup.object().shape({
   title: yup.string().required('Article title is required').min(10, 'Title must be at least 10 characters'),
   abstract: yup.string().required('Abstract is required').max(3000, 'Abstract must be less than 3000 characters'),
   category_id: yup.number().required('Please select a category').typeError('Please select a category'),
-  access_level: yup.string().oneOf(['public', 'private', 'institutional']).default('public'),
   location: yup.string().optional(),
   author_id: yup.string().optional(),
 });
@@ -90,8 +93,13 @@ const ManuscriptSubmission = () => {
   const { data: categoriesData, isLoading: isLoadingCategories } = useGetCategoriesQuery();
   const { data: editArticle, isLoading: isLoadingArticle } = useGetArticleBySlugQuery(editSlug, { skip: !editSlug });
   const { data: usersData } = useGetAdminUsersQuery({}, { skip: !isAdmin });
-  
+  const { data: formattingEligibility } = useCheckFormattingEligibilityQuery();
+  const { data: myPoints } = useGetMyPointsQuery();
+
+  const userPoints = myPoints?.total || 0;
+
   // WebSocket hook for real-time updates
+
   const { isConnected } = useWebSocketNotifications();
 
   // Data Formatting
@@ -110,16 +118,16 @@ const ManuscriptSubmission = () => {
   }, [usersData]);
 
   // Form Setup
+  const defaultValues = {
+    title: '',
+    abstract: '',
+    category_id: '',
+    location: '',
+    author_id: '',
+  }
   const { register, handleSubmit, control, watch, setValue, reset, formState: { errors, isSubmitting } } = useForm({
     resolver: yupResolver(schema),
-    defaultValues: {
-      title: '',
-      abstract: '',
-      category_id: '',
-      access_level: 'public',
-      location: '',
-      author_id: '',
-    }
+    defaultValues
   });
 
   // Populate for Edit Mode
@@ -129,7 +137,6 @@ const ManuscriptSubmission = () => {
         title: editArticle.title || '',
         abstract: editArticle.abstract || '',
         category_id: editArticle.category?.id || '',
-        access_level: editArticle.access_level || 'public',
         location: editArticle.location || '',
         author_id: editArticle.author?.id || '',
       });
@@ -169,7 +176,6 @@ const ManuscriptSubmission = () => {
     const formData = new FormData();
     formData.append('title', data.title);
     formData.append('abstract', data.abstract);
-    formData.append('access_level', data.access_level);
     formData.append('category_id', data.category_id); // Backend expects category_id
     
     if (data.location) formData.append('location', data.location);
@@ -253,7 +259,7 @@ const ManuscriptSubmission = () => {
             </span>
           </div>
           <h1 className="text-4xl font-serif font-bold text-primary tracking-tight">
-            {isEditMode ? 'Modify Research Manuscript' : 'ScholarLink Manuscript Submission'}
+            {isEditMode ? 'Modify Research Manuscript' : 'Manuscript Submission'}
           </h1>
           <p className="text-gray-400 font-medium">Contribute your academic research to the global knowledge repository.</p>
         </div>
@@ -264,6 +270,143 @@ const ManuscriptSubmission = () => {
           <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Academic Standard v6.0</p>
         </div>
       </div>
+
+      {/* Formatting Guidelines Section */}
+      {formattingEligibility?.guidelines && (
+        <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-sm border border-gray-100">
+          <div className="flex items-center gap-4 mb-8">
+            <div className="w-12 h-12 bg-accent/10 rounded-xl flex items-center justify-center text-accent">
+              <FileCheck className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-serif font-bold text-primary tracking-tight">Submission Guidelines</h2>
+              <p className="text-sm text-gray-400">Ensure your manuscript meets the required formatting standards</p>
+            </div>
+          </div>
+
+          {/* Points-based Status Banner */}
+          {userPoints >= 1000 ? (
+            <div className="bg-gradient-to-r from-accent/10 to-accent/5 p-6 rounded-2xl border border-accent/20 mb-8 flex items-center gap-4">
+              <div className="w-12 h-12 bg-accent/15 rounded-xl flex items-center justify-center text-accent">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <h4 className="text-lg font-bold text-primary">Premium Automated Layout Tuning Activated</h4>
+                <p className="text-sm text-gray-600">Our engineering team will automatically reformat this manuscript to meet the target journal specs free of charge.</p>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-gradient-to-r from-amber-50 to-yellow-50 p-6 rounded-2xl border border-amber-200 mb-8 flex items-center gap-4">
+              <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center text-amber-700">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <h4 className="text-lg font-bold text-amber-900">Manual Layout Tuning Required</h4>
+                <p className="text-sm text-amber-700">The manuscript must be manually formatted to comply with the target journal guidelines before submission.</p>
+              </div>
+            </div>
+          )}
+
+
+          {/* Visible Formatting Rules (Target Journal) */}
+          <div className="mb-8 rounded-[2rem] border border-gray-100 bg-[#F7FAFC] p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <FileCheck className="w-5 h-5 text-accent" />
+              <h3 className="text-sm font-bold text-primary uppercase tracking-widest">Target Journal Formatting Rules</h3>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="bg-white rounded-2xl border border-gray-100 p-4">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Font size</p>
+                <p className="text-sm font-bold text-primary">{formattingEligibility.guidelines.font_size}</p>
+              </div>
+              <div className="bg-white rounded-2xl border border-gray-100 p-4">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Margins</p>
+                <p className="text-sm font-bold text-primary">{formattingEligibility.guidelines.margins}</p>
+              </div>
+              <div className="bg-white rounded-2xl border border-gray-100 p-4">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Figure scale</p>
+                <p className="text-sm font-bold text-primary">{formattingEligibility.guidelines.figure_scale_dimensions || formattingEligibility.guidelines.image_dimensions}</p>
+              </div>
+              <div className="bg-white rounded-2xl border border-gray-100 p-4">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Line spacing</p>
+                <p className="text-sm font-bold text-primary">{formattingEligibility.guidelines.line_spacing}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Guidelines List */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            <div className="space-y-4">
+              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Document Layout</h3>
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-accent rounded-full mt-2 shrink-0" />
+                  <div>
+                    <p className="text-sm font-bold text-primary">Font Size</p>
+                    <p className="text-xs text-gray-400">{formattingEligibility.guidelines.font_size}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-accent rounded-full mt-2 shrink-0" />
+                  <div>
+                    <p className="text-sm font-bold text-primary">Margins</p>
+                    <p className="text-xs text-gray-400">{formattingEligibility.guidelines.margins}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-accent rounded-full mt-2 shrink-0" />
+                  <div>
+                    <p className="text-sm font-bold text-primary">Line Spacing</p>
+                    <p className="text-xs text-gray-400">{formattingEligibility.guidelines.line_spacing}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Content Requirements</h3>
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-accent rounded-full mt-2 shrink-0" />
+                  <div>
+                    <p className="text-sm font-bold text-primary">Figure Scale Dimensions</p>
+                    <p className="text-xs text-gray-400">{formattingEligibility.guidelines.figure_scale_dimensions || formattingEligibility.guidelines.image_dimensions}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-accent rounded-full mt-2 shrink-0" />
+                  <div>
+                    <p className="text-sm font-bold text-primary">Citation Style</p>
+                    <p className="text-xs text-gray-400">{formattingEligibility.guidelines.citation_style}</p>
+                  </div>
+                </div>
+                {(formattingEligibility.guidelines.min_word_count || formattingEligibility.guidelines.max_word_count) && (
+                  <div className="flex items-start gap-3">
+                    <div className="w-2 h-2 bg-accent rounded-full mt-2 shrink-0" />
+                    <div>
+                      <p className="text-sm font-bold text-primary">Word Count</p>
+                      <p className="text-xs text-gray-400">
+                        {formattingEligibility.guidelines.min_word_count && `Min: ${formattingEligibility.guidelines.min_word_count}`}
+                        {formattingEligibility.guidelines.min_word_count && formattingEligibility.guidelines.max_word_count && ' | '}
+                        {formattingEligibility.guidelines.max_word_count && `Max: ${formattingEligibility.guidelines.max_word_count}`}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {formattingEligibility.guidelines.additional_requirements && (
+            <div className="mt-6 pt-6 border-t border-gray-100">
+              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3">Additional Requirements</h3>
+              <p className="text-sm text-gray-600 leading-relaxed">{formattingEligibility.guidelines.additional_requirements}</p>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
         {/* Left Column: The Form */}
@@ -314,26 +457,6 @@ const ManuscriptSubmission = () => {
                     ))}
                   </select>
                   {errors.category_id && <p className="text-xs text-red-500 font-bold px-1">{errors.category_id.message}</p>}
-                </div>
-
-                <div className="space-y-3">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2 px-1">
-                    <Globe className="w-3 h-3" /> Access Level
-                  </label>
-                  <select 
-                    {...register('access_level')}
-                    className="w-full bg-[#F7FAFC] border-none rounded-2xl py-4 px-6 text-sm font-bold text-primary focus:ring-4 focus:ring-accent/5 outline-none cursor-pointer appearance-none"
-                  >
-                    <option value="public">Public (Open Access)</option>
-                    <option value="institutional">Institutional Only</option>
-                    <option value="private">Private / Restricted</option>
-                  </select>
-                  <div className="p-4 bg-blue-50/50 rounded-2xl flex gap-3">
-                    <Info className="w-4 h-4 text-blue-400 shrink-0" />
-                    <p className="text-[9px] text-blue-500 font-medium leading-normal">
-                      Public access allows global indexing and citations. Private restricts viewing to authorized users.
-                    </p>
-                  </div>
                 </div>
               </div>
 
@@ -562,7 +685,7 @@ const ManuscriptSubmission = () => {
       {/* Footer Support */}
       <div className="text-center pt-8">
         <p className="text-[10px] font-bold text-gray-300 uppercase tracking-[0.3em]">
-          ScholarLink Academic Trust & Integrity System
+          [Platform Name] Academic Trust & Integrity System
         </p>
       </div>
     </div>

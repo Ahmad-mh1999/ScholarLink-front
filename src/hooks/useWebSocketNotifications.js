@@ -15,8 +15,7 @@ import { baseApi } from '../api/baseApi';
 
 // WebSocket message types from backend
 const WS_MESSAGE_TYPES = {
-  CONNECTION_ESTABLISHED: 'connection_established',
-  NOTIFICATION_MESSAGE: 'notification_message',
+  NOTIFICATION_MESSAGE: 'notification',
   UNREAD_COUNT_UPDATE: 'unread_count_update',
   NOTIFICATION_READ: 'notification_read',
 };
@@ -25,6 +24,8 @@ export const useWebSocketNotifications = () => {
   const dispatch = useDispatch();
   const socketRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
+  const reconnectAttemptsRef = useRef(0);
+  const isConnectingRef = useRef(false); // Prevent duplicate connections
   const [isConnected, setIsConnected] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [lastMessage, setLastMessage] = useState(null);
@@ -51,7 +52,7 @@ export const useWebSocketNotifications = () => {
       baseUrl = `${protocol}//${host}${baseUrl}`;
     }
     
-    // If using wss with token authentication
+    // Get fresh token from localStorage
     const token = localStorage.getItem('access_token');
     if (token && baseUrl.includes('?')) {
       return `${baseUrl}&token=${token}`;
@@ -69,14 +70,6 @@ export const useWebSocketNotifications = () => {
       console.log('WebSocket message received:', data);
 
       switch (data.type) {
-        case WS_MESSAGE_TYPES.CONNECTION_ESTABLISHED:
-          // Initial connection with unread count
-          if (data.unread_count !== undefined) {
-            setUnreadCount(data.unread_count);
-          }
-          setIsConnected(true);
-          break;
-
         case WS_MESSAGE_TYPES.NOTIFICATION_MESSAGE:
           // New notification received
           setLastMessage(data.notification);
@@ -119,19 +112,25 @@ export const useWebSocketNotifications = () => {
   const handleOpen = useCallback(() => {
     console.log('WebSocket connection established');
     setIsConnected(true);
+    isConnectingRef.current = false; // Reset connection flag on success
+    reconnectAttemptsRef.current = 0; // Reset reconnection attempts on success
   }, []);
 
   // Handle connection close
   const handleClose = useCallback((event) => {
     console.log('WebSocket connection closed:', event.code, event.reason);
     setIsConnected(false);
+    isConnectingRef.current = false; // Reset connection flag on close
 
-    // Auto-reconnect after 3 seconds if not intentionally closed
+    // Auto-reconnect with exponential backoff if not intentionally closed
     if (event.code !== 1000 && event.code !== 1001) {
+      const backoffDelay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
+      reconnectAttemptsRef.current += 1;
+
+      console.log(`Attempting WebSocket reconnection in ${backoffDelay}ms (attempt ${reconnectAttemptsRef.current})`);
       reconnectTimeoutRef.current = setTimeout(() => {
-        console.log('Attempting WebSocket reconnection...');
         connect();
-      }, 3000);
+      }, backoffDelay);
     }
   }, []);
 
@@ -141,27 +140,36 @@ export const useWebSocketNotifications = () => {
     setIsConnected(false);
   }, []);
 
-  // Connect to WebSocket
-  const connect = useCallback(() => {
-    // Close existing connection if any
-    if (socketRef.current) {
-      socketRef.current.close();
+  // Connect to WebSocket (function declaration to avoid TDZ)
+  function connect() {
+    // Prevent duplicate connections
+    if (isConnectingRef.current || socketRef.current) {
+      console.log('WebSocket connection already in progress or active');
+      return;
+    }
+
+    // Check for valid token before connecting
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      console.log('No auth token available - skipping WebSocket connection');
+      return;
     }
 
     try {
       const wsUrl = getWebSocketUrl();
-      
+
       // Skip if WebSocket is disabled
       if (!wsUrl) {
         console.log('WebSocket disabled - using polling fallback');
         setIsConnected(false);
         return;
       }
-      
+
+      isConnectingRef.current = true;
       console.log('Connecting to WebSocket:', wsUrl);
-      
+
       const socket = new WebSocket(wsUrl);
-      
+
       socket.onopen = handleOpen;
       socket.onmessage = handleMessage;
       socket.onclose = handleClose;
@@ -170,19 +178,21 @@ export const useWebSocketNotifications = () => {
       socketRef.current = socket;
     } catch (error) {
       console.error('Error creating WebSocket connection:', error);
+      isConnectingRef.current = false;
     }
-  }, [handleOpen, handleMessage, handleClose, handleError]);
+  }
 
   // Disconnect from WebSocket
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
     }
-    
+
     if (socketRef.current) {
       socketRef.current.close(1000, 'Component unmounted');
       socketRef.current = null;
     }
+    isConnectingRef.current = false; // Reset connection flag on disconnect
     setIsConnected(false);
   }, []);
 
@@ -203,12 +213,16 @@ export const useWebSocketNotifications = () => {
 
   // Connect on mount, disconnect on unmount
   useEffect(() => {
-    connect();
-    
+    // Small delay to ensure auth token is available (especially for React StrictMode)
+    const connectionDelay = setTimeout(() => {
+      connect();
+    }, 100);
+
     return () => {
+      clearTimeout(connectionDelay);
       disconnect();
     };
-  }, [connect, disconnect]);
+  }, [disconnect]);
 
   return {
     isConnected,

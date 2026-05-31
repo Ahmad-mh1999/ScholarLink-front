@@ -154,8 +154,10 @@ export const AuthProvider = ({ children }) => {
       return freshUser;
     } catch (error) {
       console.error('Failed to fetch fresh user data:', error);
-      // If unauthorized, we might want to logout
-      if (error.response?.status === 401) {
+
+      // If unauthorized, clear session fully (tokens + persisted user) and surface login.
+      if (error?.response?.status === 401) {
+        tokenService.clearTokens?.();
         logoutUser();
       }
       return null;

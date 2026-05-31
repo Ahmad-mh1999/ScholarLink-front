@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './routes/ProtectedRoute';
 import MainLayout from './layouts/MainLayout';
+import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
@@ -323,6 +324,9 @@ function App() {
       <Router>
         <div className="min-h-screen bg-[#F7FAFC] text-text">
         <Routes>
+          {/* Public Landing Page */}
+          <Route path="/" element={<LandingPage />} />
+
           {/* Auth Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
@@ -336,12 +340,16 @@ function App() {
             </ProtectedRoute>
           } />
 
+          {/* Public Routes (Research Feed and Article Detail) */}
+          <Route element={<MainLayout />}>
+            <Route path="/explore" element={<ResearchFeed />} />
+            <Route path="/article/:slug" element={<ArticleDetail />} />
+          </Route>
+
           {/* Protected Routes (Using MainLayout) */}
           <Route element={<ProtectedRoute />}>
             <Route element={<MainLayout />}>
               <Route path="/" element={<Dashboard />} />
-              <Route path="/explore" element={<ResearchFeed />} />
-              <Route path="/article/:slug" element={<ArticleDetail />} />
               <Route path="/submit" element={<ManuscriptSubmission />} />
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/my-articles" element={<MyArticles />} />

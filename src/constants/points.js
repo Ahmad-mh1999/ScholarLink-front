@@ -1,6 +1,6 @@
 /**
  * Points & Gamification System Constants
- * Defines point values for all user actions in the ScholarLink platform
+ * Defines point values for all user actions in the [Platform Name] platform
  */
 
 // ═══════════════════════════════════════════════════════════════════

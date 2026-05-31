@@ -99,16 +99,11 @@ const PointsSummaryCard = ({ points, loading }) => {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <div className="bg-white/10 backdrop-blur-sm p-4 rounded-2xl text-center">
             <FileText className="w-5 h-5 text-accent mx-auto mb-2" />
             <p className="text-[10px] font-bold text-blue-100/60 uppercase tracking-widest">Articles</p>
             <p className="text-lg font-bold text-white">+{POINTS.PUBLISH_ARTICLE}</p>
-          </div>
-          <div className="bg-white/10 backdrop-blur-sm p-4 rounded-2xl text-center">
-            <MessageSquare className="w-5 h-5 text-accent mx-auto mb-2" />
-            <p className="text-[10px] font-bold text-blue-100/60 uppercase tracking-widest">Reviews</p>
-            <p className="text-lg font-bold text-white">+{POINTS.SUBMIT_REVIEW}</p>
           </div>
           <div className="bg-white/10 backdrop-blur-sm p-4 rounded-2xl text-center">
             <Bookmark className="w-5 h-5 text-accent mx-auto mb-2" />
@@ -203,16 +198,6 @@ const PointsEarningGuide = () => {
       bgColor: 'bg-accent/10',
       action: '/submit',
       actionLabel: 'Submit Article',
-    },
-    {
-      icon: MessageSquare,
-      title: 'Submit Review',
-      points: POINTS.SUBMIT_REVIEW,
-      description: 'Submitting a peer review gives you +5 points',
-      color: 'text-blue-500',
-      bgColor: 'bg-blue-50',
-      action: '/peer-review',
-      actionLabel: 'Review Articles',
     },
     {
       icon: Bookmark,

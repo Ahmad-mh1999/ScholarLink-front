@@ -62,7 +62,7 @@ const ForgotPassword = () => {
       </Link>
 
       <h2 className="text-4xl font-serif text-primary mb-2 tracking-tight">Forgot Password</h2>
-      <p className="text-gray-400 mb-10 font-medium">We'll help you get back into ScholarLink</p>
+      <p className="text-gray-400 mb-10 font-medium">We'll help you recover your account</p>
       
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
         {serverError && <div className="p-4 bg-red-50 text-red-600 rounded-2xl text-sm border border-red-100">{serverError}</div>}

@@ -82,8 +82,7 @@ const RoleChangeDropdown = ({ user, onRoleChange }) => {
   // Available roles (excluding admin)
   const availableRoles = [
     { value: 'user', label: 'User' },
-    { value: 'reviewer', label: 'Reviewer' },
-    { value: 'moderator', label: 'Moderator' }
+    { value: 'reviewer', label: 'Reviewer' }
   ];
 
   const handleRoleSelect = (role) => {
@@ -332,7 +331,6 @@ const UserManagement = () => {
               <option value="all">All Roles</option>
               <option value="user">Users</option>
               <option value="reviewer">Reviewers</option>
-              <option value="moderator">Moderators</option>
               <option value="admin">Admins</option>
             </select>
           </div>

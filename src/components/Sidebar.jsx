@@ -175,7 +175,7 @@ const Sidebar = () => {
 
       {/* Footer / App Version (Optional) */}
       <div className="mt-auto pt-10 text-center">
-        <p className="text-[10px] text-gray-300 font-medium uppercase tracking-widest">ScholarLink v1.0.4</p>
+        <p className="text-[10px] text-gray-300 font-medium uppercase tracking-widest">[Platform Name] v1.0.4</p>
       </div>
     </aside>
   );
