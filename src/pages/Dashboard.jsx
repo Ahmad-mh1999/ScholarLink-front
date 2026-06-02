@@ -1,15 +1,15 @@
-import React from 'react';
-import { useSelector } from 'react-redux';
-import { Link, useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
-import { 
-  FileText, 
-  Eye, 
-  Star, 
-  TrendingUp, 
-  Plus, 
-  Bookmark, 
-  Users, 
+import React from "react";
+import { useSelector } from "react-redux";
+import { Link, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
+import {
+  FileText,
+  Eye,
+  Star,
+  TrendingUp,
+  Plus,
+  Bookmark,
+  Users,
   ArrowRight,
   Clock,
   MessageSquare,
@@ -23,32 +23,40 @@ import {
   CheckCircle2,
   Heart,
   MessageCircle,
-  Zap
-} from 'lucide-react';
+  Zap,
+  Edit3,
+  Loader2,
+  Download,
+} from "lucide-react";
 
-
-import { 
-  useGetStatsQuery, 
-  useGetTrendingArticlesQuery, 
+import {
+  useGetStatsQuery,
+  useGetTrendingArticlesQuery,
   useGetMostReadQuery,
   useGetMyArticlesQuery,
   useGetMyPointsQuery,
   useGetUnreadNotificationsCountQuery,
   useGetNotificationsQuery,
-} from '../api/baseApi';
+} from "../api/baseApi";
 
 // ─── Sub-component: Stat Card ───
 const StatCard = ({ icon: Icon, value, label, trend, loading, accent }) => (
   <div className="bg-white p-8 rounded-[2rem] border border-gray-50 shadow-sm flex flex-col items-center justify-center text-center group hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300">
-    <div className={`w-12 h-12 ${accent ? 'bg-accent/10' : 'bg-accent/5'} rounded-xl flex items-center justify-center ${accent ? 'text-accent' : 'text-accent'} mb-4 group-hover:bg-accent group-hover:text-white transition-all`}>
+    <div
+      className={`w-12 h-12 ${accent ? "bg-accent/10" : "bg-accent/5"} rounded-xl flex items-center justify-center ${accent ? "text-accent" : "text-accent"} mb-4 group-hover:bg-accent group-hover:text-white transition-all`}
+    >
       <Icon className="w-6 h-6" />
     </div>
     {loading ? (
       <div className="h-8 w-20 bg-gray-100 animate-pulse rounded mb-2"></div>
     ) : (
-      <h3 className="text-4xl font-bold text-primary mb-1 tracking-tight">{value}</h3>
+      <h3 className="text-4xl font-bold text-primary mb-1 tracking-tight">
+        {value}
+      </h3>
     )}
-    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">{label}</p>
+    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">
+      {label}
+    </p>
     {trend && (
       <div className="flex items-center gap-1 mt-2 text-[10px] font-bold text-green-500">
         <TrendingUp className="w-3 h-3" />
@@ -60,19 +68,22 @@ const StatCard = ({ icon: Icon, value, label, trend, loading, accent }) => (
 
 // ─── Sub-component: Trending Article Card ───
 const TrendingCard = ({ article, onClick }) => (
-  <div 
+  <div
     onClick={onClick}
     className="bg-white rounded-[2rem] border border-gray-50 shadow-sm overflow-hidden group hover:shadow-2xl hover:shadow-slate-200/50 transition-all duration-500 flex flex-col h-full cursor-pointer"
   >
     <div className="relative h-48 overflow-hidden">
-      <img 
-        src={article.cover_image || 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&q=80&w=800'} 
+      <img
+        src={
+          article.cover_image ||
+          "https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&q=80&w=800"
+        }
         alt={article.title}
         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
       />
       <div className="absolute top-4 left-4">
         <span className="px-4 py-1.5 bg-accent/90 backdrop-blur-md text-white text-[10px] font-bold rounded-full uppercase tracking-widest">
-          {article.category?.name || 'Research'}
+          {article.category?.name || "Research"}
         </span>
       </div>
     </div>
@@ -81,11 +92,18 @@ const TrendingCard = ({ article, onClick }) => (
         {article.title}
       </h3>
       <p className="text-sm text-gray-500 font-medium mb-4">
-        {article.author?.first_name} {article.author?.last_name} • {article.views_count?.toLocaleString() || 0} views
+        {article.author?.first_name} {article.author?.last_name} •{" "}
+        {article.views_count?.toLocaleString() || 0} views
       </p>
       <div className="mt-auto pt-6 border-t border-gray-50 flex items-center justify-between">
         <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest italic">
-          {article.published_at ? new Date(article.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently'}
+          {article.published_at
+            ? new Date(article.published_at).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })
+            : "Recently"}
         </p>
         <div className="flex items-center gap-3">
           <span className="flex items-center gap-1 text-[10px] font-bold text-gray-400">
@@ -102,7 +120,7 @@ const TrendingCard = ({ article, onClick }) => (
 
 // ─── Sub-component: Recommended Article Item ───
 const RecommendationItem = ({ article, onClick }) => (
-  <div 
+  <div
     onClick={onClick}
     className="bg-white p-6 rounded-3xl border border-gray-50 flex items-center gap-6 group hover:shadow-lg hover:shadow-slate-200/40 transition-all cursor-pointer"
   >
@@ -114,12 +132,13 @@ const RecommendationItem = ({ article, onClick }) => (
         {article.title}
       </h4>
       <p className="text-xs text-gray-400 font-medium">
-        {article.author?.first_name} {article.author?.last_name} • {article.views_count?.toLocaleString() || 0} views
+        {article.author?.first_name} {article.author?.last_name} •{" "}
+        {article.views_count?.toLocaleString() || 0} views
       </p>
     </div>
     <div className="flex items-center gap-3 shrink-0">
       <span className="px-3 py-1 bg-accent/5 text-accent text-[10px] font-bold rounded-lg border border-accent/10">
-        {article.category?.name || 'Research'}
+        {article.category?.name || "Research"}
       </span>
       <Eye className="w-4 h-4 text-gray-200 group-hover:text-accent transition-colors" />
     </div>
@@ -128,31 +147,45 @@ const RecommendationItem = ({ article, onClick }) => (
 
 // ─── Sub-component: Quick Action Card ───
 const QuickAction = ({ icon: Icon, label, description, to, color }) => (
-  <Link 
+  <Link
     to={to}
     className="bg-white p-6 rounded-2xl border border-gray-50 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 group flex items-center gap-5"
   >
-    <div className={`w-12 h-12 ${color} rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform`}>
+    <div
+      className={`w-12 h-12 ${color} rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform`}
+    >
       <Icon className="w-5 h-5 text-white" />
     </div>
     <div className="flex-1 min-w-0">
-      <h4 className="font-bold text-primary text-sm tracking-tight group-hover:text-accent transition-colors">{label}</h4>
-      <p className="text-[10px] text-gray-400 font-medium mt-0.5">{description}</p>
+      <h4 className="font-bold text-primary text-sm tracking-tight group-hover:text-accent transition-colors">
+        {label}
+      </h4>
+      <p className="text-[10px] text-gray-400 font-medium mt-0.5">
+        {description}
+      </p>
     </div>
     <ArrowRight className="w-4 h-4 text-gray-200 group-hover:text-accent group-hover:translate-x-1 transition-all shrink-0" />
   </Link>
 );
 
 // ─── Sub-component: Empty State ───
-const EmptyState = ({ icon: Icon, title, description, actionLabel, actionTo }) => (
+const EmptyState = ({
+  icon: Icon,
+  title,
+  description,
+  actionLabel,
+  actionTo,
+}) => (
   <div className="bg-white p-12 rounded-[2.5rem] border border-gray-50 shadow-sm text-center">
     <div className="w-16 h-16 bg-accent/5 rounded-2xl flex items-center justify-center text-accent mx-auto mb-4">
       <Icon className="w-8 h-8" />
     </div>
     <h3 className="text-lg font-bold text-primary mb-2">{title}</h3>
-    <p className="text-sm text-gray-400 font-medium mb-6 max-w-sm mx-auto">{description}</p>
+    <p className="text-sm text-gray-400 font-medium mb-6 max-w-sm mx-auto">
+      {description}
+    </p>
     {actionLabel && actionTo && (
-      <Link 
+      <Link
         to={actionTo}
         className="inline-flex items-center gap-2 bg-accent hover:bg-[#287E7B] text-white px-6 py-3 rounded-2xl font-bold text-sm transition-all shadow-lg shadow-teal-500/20"
       >
@@ -164,10 +197,13 @@ const EmptyState = ({ icon: Icon, title, description, actionLabel, actionTo }) =
 );
 
 // ─── Sub-component: Loading Skeleton ───
-const SectionSkeleton = ({ count = 2, height = 'h-80' }) => (
+const SectionSkeleton = ({ count = 2, height = "h-80" }) => (
   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
     {Array.from({ length: count }).map((_, i) => (
-      <div key={i} className={`${height} bg-white rounded-[2rem] animate-pulse`}></div>
+      <div
+        key={i}
+        className={`${height} bg-white rounded-[2rem] animate-pulse`}
+      ></div>
     ))}
   </div>
 );
@@ -176,11 +212,16 @@ const SectionSkeleton = ({ count = 2, height = 'h-80' }) => (
 const ActivityItem = ({ activity }) => {
   const getIcon = (type) => {
     switch (type) {
-      case 'manuscript': return <FileText className="w-4 h-4 text-accent" />;
-      case 'comment': return <MessageCircle className="w-4 h-4 text-primary" />;
-      case 'verification': return <CheckCircle2 className="w-4 h-4 text-green-500" />;
-      case 'milestone': return <Trophy className="w-4 h-4 text-yellow-500" />;
-      default: return <Bell className="w-4 h-4 text-gray-400" />;
+      case "manuscript":
+        return <FileText className="w-4 h-4 text-accent" />;
+      case "comment":
+        return <MessageCircle className="w-4 h-4 text-primary" />;
+      case "verification":
+        return <CheckCircle2 className="w-4 h-4 text-green-500" />;
+      case "milestone":
+        return <Trophy className="w-4 h-4 text-yellow-500" />;
+      default:
+        return <Bell className="w-4 h-4 text-gray-400" />;
     }
   };
 
@@ -197,7 +238,7 @@ const ActivityItem = ({ activity }) => {
           {activity.description}
         </p>
         <p className="text-[10px] text-gray-300 font-medium uppercase tracking-widest">
-          {activity.created_at_formatted || 'Recently'}
+          {activity.created_at_formatted || "Recently"}
         </p>
       </div>
       {!activity.is_read && (
@@ -213,10 +254,12 @@ const RecentActivityFeed = ({ activities, loading }) => {
     return (
       <div className="bg-white p-8 rounded-[2.5rem] border border-gray-50 shadow-sm">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-bold text-primary tracking-tight">Recent Activity</h3>
+          <h3 className="text-lg font-bold text-primary tracking-tight">
+            Recent Activity
+          </h3>
         </div>
         <div className="space-y-4">
-          {[1, 2, 3, 4].map(i => (
+          {[1, 2, 3, 4].map((i) => (
             <div key={i} className="flex items-start gap-4 p-4 animate-pulse">
               <div className="w-10 h-10 bg-gray-100 rounded-xl shrink-0"></div>
               <div className="flex-1 space-y-2">
@@ -234,15 +277,24 @@ const RecentActivityFeed = ({ activities, loading }) => {
     return (
       <div className="bg-white p-8 rounded-[2.5rem] border border-gray-50 shadow-sm">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-bold text-primary tracking-tight">Recent Activity</h3>
-          <Link to="/notifications" className="text-[10px] font-bold text-accent uppercase tracking-widest hover:underline">
+          <h3 className="text-lg font-bold text-primary tracking-tight">
+            Recent Activity
+          </h3>
+          <Link
+            to="/notifications"
+            className="text-[10px] font-bold text-accent uppercase tracking-widest hover:underline"
+          >
             View All
           </Link>
         </div>
         <div className="text-center py-8">
           <Bell className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-          <p className="text-sm text-gray-400 font-medium">No recent activity</p>
-          <p className="text-xs text-gray-300 mt-1">Your notifications will appear here</p>
+          <p className="text-sm text-gray-400 font-medium">
+            No recent activity
+          </p>
+          <p className="text-xs text-gray-300 mt-1">
+            Your notifications will appear here
+          </p>
         </div>
       </div>
     );
@@ -251,19 +303,41 @@ const RecentActivityFeed = ({ activities, loading }) => {
   return (
     <div className="bg-white p-8 rounded-[2.5rem] border border-gray-50 shadow-sm">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-bold text-primary tracking-tight">Recent Activity</h3>
-        <Link to="/notifications" className="text-[10px] font-bold text-accent uppercase tracking-widest hover:underline">
+        <h3 className="text-lg font-bold text-primary tracking-tight">
+          Recent Activity
+        </h3>
+        <Link
+          to="/notifications"
+          className="text-[10px] font-bold text-accent uppercase tracking-widest hover:underline"
+        >
           View All
         </Link>
       </div>
       <div className="space-y-1">
-        {activities.slice(0, 5).map(activity => (
+        {activities.slice(0, 5).map((activity) => (
           <ActivityItem key={activity.id} activity={activity} />
         ))}
       </div>
     </div>
   );
 };
+
+const getStatusBadgeClasses = (status) => {
+  switch (status) {
+    case "draft":
+      return "bg-slate-100 text-slate-600 border-slate-200";
+    case "under_review":
+      return "bg-blue-50 text-blue-600 border-blue-100";
+    case "nominated":
+      return "bg-amber-50 text-amber-700 border-amber-200";
+    case "published":
+      return "bg-emerald-50 text-emerald-600 border-emerald-100";
+    default:
+      return "bg-gray-50 text-gray-500 border-gray-100";
+  }
+};
+
+const formatStatusLabel = (status) => (status || "draft").replace(/_/g, " ");
 
 // ═══════════════════════════════════════════════════════════════════
 // Main Dashboard Component
@@ -274,22 +348,37 @@ const Dashboard = () => {
 
   // ─── API Hooks ───
 
-  const { data: stats, isLoading: statsLoading, error: statsError } = useGetStatsQuery();
-  const { data: trending, isLoading: trendingLoading } = useGetTrendingArticlesQuery();
-  const { data: mostRead, isLoading: mostReadLoading } = useGetMostReadQuery({ period: 'week' });
-  const { data: myArticles, isLoading: myArticlesLoading } = useGetMyArticlesQuery({ page_size: 10 });
+  const {
+    data: stats,
+    isLoading: statsLoading,
+    error: statsError,
+  } = useGetStatsQuery();
+  const { data: trending, isLoading: trendingLoading } =
+    useGetTrendingArticlesQuery();
+  const { data: mostRead, isLoading: mostReadLoading } = useGetMostReadQuery({
+    period: "week",
+  });
+  const { data: myArticles, isLoading: myArticlesLoading } =
+    useGetMyArticlesQuery({ page_size: 10 });
   const { data: myPoints, isLoading: pointsLoading } = useGetMyPointsQuery();
   const { data: unreadData } = useGetUnreadNotificationsCountQuery();
-  const { data: notificationsData, isLoading: notificationsLoading } = useGetNotificationsQuery({ page_size: 5 });
+  const { data: notificationsData, isLoading: notificationsLoading } =
+    useGetNotificationsQuery({ page_size: 5 });
 
   // ─── Derived Data ───
-  const underReview = myArticles?.results?.filter(a => a.status === 'under_review') || [];
-  const published = myArticles?.results?.filter(a => a.status === 'published') || [];
+  const draftArticles =
+    myArticles?.results?.filter((a) => a.status === "draft") || [];
+  const underReview =
+    myArticles?.results?.filter((a) => a.status === "under_review") || [];
+  const nominatedArticles =
+    myArticles?.results?.filter((a) => a.status === "nominated") || [];
+  const published =
+    myArticles?.results?.filter((a) => a.status === "published") || [];
   const unreadCount = unreadData?.unread_count || 0;
 
   // Format large numbers
   const formatNumber = (num) => {
-    if (!num && num !== 0) return '0';
+    if (!num && num !== 0) return "0";
     if (num >= 1000) return `${(num / 1000).toFixed(1)}k`;
     return num.toString();
   };
@@ -300,19 +389,24 @@ const Dashboard = () => {
   };
 
   // ─── Suggest Journals (inline per row) ───
-  const [suggestOpenForArticleId, setSuggestOpenForArticleId] = React.useState(null);
-  const [suggestLoadingForArticleId, setSuggestLoadingForArticleId] = React.useState(null);
+  const [suggestOpenForArticleId, setSuggestOpenForArticleId] =
+    React.useState(null);
+  const [suggestLoadingForArticleId, setSuggestLoadingForArticleId] =
+    React.useState(null);
   const [suggestResults, setSuggestResults] = React.useState({});
 
   const fetchSuggestedJournals = async (articleId) => {
     setSuggestLoadingForArticleId(articleId);
     try {
-      const token = localStorage.getItem('access_token');
-      const res = await fetch(`${import.meta.env.VITE_API_URL}articles/${articleId}/recommend-journals/`, {
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      const token = localStorage.getItem("access_token");
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}articles/${articleId}/recommend-journals/`,
+        {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
         },
-      });
+      );
 
       if (!res.ok) {
         throw new Error(`Failed to fetch recommendations (HTTP ${res.status})`);
@@ -320,10 +414,13 @@ const Dashboard = () => {
 
       const data = await res.json();
       // Expected: array (top 3)
-      setSuggestResults((prev) => ({ ...prev, [articleId]: Array.isArray(data) ? data : data.journals || [] }));
+      setSuggestResults((prev) => ({
+        ...prev,
+        [articleId]: Array.isArray(data) ? data : data.journals || [],
+      }));
     } catch (e) {
       console.error(e);
-      toast?.error?.('Failed to load suggested journals');
+      toast?.error?.("Failed to load suggested journals");
       setSuggestResults((prev) => ({ ...prev, [articleId]: [] }));
     } finally {
       setSuggestLoadingForArticleId(null);
@@ -332,31 +429,37 @@ const Dashboard = () => {
 
   const handleToggleSuggest = async (articleId) => {
     setSuggestOpenForArticleId((cur) => (cur === articleId ? null : articleId));
-    if (suggestResults[articleId] && suggestResults[articleId].length > 0) return;
+    if (suggestResults[articleId] && suggestResults[articleId].length > 0)
+      return;
     await fetchSuggestedJournals(articleId);
   };
 
-  const applyNominatedJournal = async (articleId, journalId) => {
+  const applyNominatedJournal = async (articleSlug, journalId) => {
     try {
-      const token = localStorage.getItem('access_token');
-      const res = await fetch(`${import.meta.env.VITE_API_URL}articles/${articleId}/`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      const token = localStorage.getItem("access_token");
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}articles/${articleSlug}/`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ nominated_journal: journalId }),
         },
-        body: JSON.stringify({ nominated_journal: journalId }),
-      });
+      );
 
       if (!res.ok) {
-        throw new Error(`Failed to apply nominated journal (HTTP ${res.status})`);
+        throw new Error(
+          `Failed to apply nominated journal (HTTP ${res.status})`,
+        );
       }
 
-      toast?.success?.('Nominated journal applied');
+      toast?.success?.("Nominated journal applied");
       setSuggestOpenForArticleId(null);
     } catch (e) {
       console.error(e);
-      toast?.error?.('Failed to apply nominated journal');
+      toast?.error?.("Failed to apply nominated journal");
     }
   };
 
@@ -369,9 +472,12 @@ const Dashboard = () => {
             <Trophy className="w-6 h-6 text-[#D69E2E]" />
           </div>
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#D69E2E] mb-2">High Points Account</p>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#D69E2E] mb-2">
+              High Points Account
+            </p>
             <p className="text-sm font-bold text-primary">
-              Eligible for Fast-Track Peer Review, Instant Journal Matching, and Full Publication Cost Coverage Support.
+              Eligible for Fast-Track Peer Review, Instant Journal Matching, and
+              Full Publication Cost Coverage Support.
             </p>
           </div>
         </div>
@@ -379,15 +485,16 @@ const Dashboard = () => {
 
       {/* ═══ 1. Welcome Header ═══ */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-
         <div className="flex flex-col gap-3">
           <h1 className="text-5xl font-serif font-bold text-primary tracking-tight">
             Dashboard
           </h1>
           <div className="flex items-center gap-3">
-            <span className="text-[10px] font-bold text-gray-300 uppercase tracking-[0.3em]">Academic Profile:</span>
+            <span className="text-[10px] font-bold text-gray-300 uppercase tracking-[0.3em]">
+              Academic Profile:
+            </span>
             <span className="text-[10px] font-bold text-accent uppercase tracking-[0.3em]">
-              {user?.academic_status?.replace('_', ' ') || 'Researcher'}
+              {user?.academic_status?.replace("_", " ") || "Researcher"}
             </span>
             {user?.institution && (
               <>
@@ -400,15 +507,15 @@ const Dashboard = () => {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Link 
-            to="/submit" 
+          <Link
+            to="/submit"
             className="flex items-center gap-2 bg-accent hover:bg-[#287E7B] text-white px-6 py-3 rounded-2xl font-bold text-sm transition-all shadow-lg shadow-teal-500/20"
           >
             <Plus className="w-4 h-4" />
             New Submission
           </Link>
           {unreadCount > 0 && (
-            <Link 
+            <Link
               to="/notifications"
               className="flex items-center gap-2 bg-primary hover:bg-[#152c4d] text-white px-6 py-3 rounded-2xl font-bold text-sm transition-all shadow-lg shadow-primary/20"
             >
@@ -421,58 +528,64 @@ const Dashboard = () => {
 
       {/* ═══ 2. Stats Row ═══ */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-        <StatCard 
-          icon={FileText} 
-          value={published.length || stats?.total_articles || 0} 
-          label="Published Articles" 
+        <StatCard
+          icon={FileText}
+          value={published.length || stats?.total_articles || 0}
+          label="Published Articles"
           loading={statsLoading && myArticlesLoading}
-          trend={stats?.total_articles ? `${stats.total_articles} platform-wide` : null}
+          trend={
+            stats?.total_articles
+              ? `${stats.total_articles} platform-wide`
+              : null
+          }
         />
-        <StatCard 
-          icon={Eye} 
-          value={formatNumber(published.reduce((sum, a) => sum + (a.views_count || 0), 0))} 
-          label="Total Views" 
+        <StatCard
+          icon={Eye}
+          value={formatNumber(
+            published.reduce((sum, a) => sum + (a.views_count || 0), 0),
+          )}
+          label="Total Views"
           loading={myArticlesLoading}
         />
-        <StatCard 
-          icon={Star} 
-          value={myPoints?.total || 0} 
-          label="Academic Points" 
+        <StatCard
+          icon={Star}
+          value={myPoints?.total || 0}
+          label="Academic Points"
           loading={pointsLoading}
           accent
         />
-        <StatCard 
-          icon={Users} 
-          value={user?.network_count || 0} 
-          label="Network" 
+        <StatCard
+          icon={Users}
+          value={user?.network_count || 0}
+          label="Network"
           loading={false}
         />
       </div>
 
       {/* ═══ 3. Quick Actions ═══ */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <QuickAction 
+        <QuickAction
           icon={Edit3}
           label="Submit Manuscript"
           description="Publish new research"
           to="/submit"
           color="bg-accent"
         />
-        <QuickAction 
+        <QuickAction
           icon={BookOpen}
           label="Explore Research"
           description="Browse latest articles"
           to="/explore"
           color="bg-primary"
         />
-        <QuickAction 
+        <QuickAction
           icon={Send}
           label="Peer Review"
           description="Review incoming requests"
           to="/peer-review"
           color="bg-[#6B46C1]"
         />
-        <QuickAction 
+        <QuickAction
           icon={Trophy}
           label="Leaderboard"
           description="Points & rankings"
@@ -484,36 +597,40 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
         {/* ═══ Left Column (8/12) ═══ */}
         <div className="lg:col-span-8 space-y-16">
-          
           {/* ═══ 4. Trending Articles Section ═══ */}
           <section>
             <div className="flex items-center justify-between mb-8">
               <div className="space-y-1">
-                <p className="text-[10px] font-bold text-accent uppercase tracking-[0.2em]">Current Discourse</p>
-                <h2 className="text-3xl font-serif font-bold text-primary tracking-tight">Trending Articles</h2>
+                <p className="text-[10px] font-bold text-accent uppercase tracking-[0.2em]">
+                  Current Discourse
+                </p>
+                <h2 className="text-3xl font-serif font-bold text-primary tracking-tight">
+                  Trending Articles
+                </h2>
               </div>
-              <Link 
+              <Link
                 to="/explore"
                 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest hover:text-accent transition-colors flex items-center gap-2 group"
               >
-                View All <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                View All{" "}
+                <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
-            
+
             {trendingLoading ? (
               <SectionSkeleton count={2} height="h-80" />
             ) : trending?.results?.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {trending.results.slice(0, 4).map(article => (
-                  <TrendingCard 
-                    key={article.id} 
-                    article={article} 
-                    onClick={() => handleArticleClick(article)} 
+                {trending.results.slice(0, 4).map((article) => (
+                  <TrendingCard
+                    key={article.id}
+                    article={article}
+                    onClick={() => handleArticleClick(article)}
                   />
                 ))}
               </div>
             ) : (
-              <EmptyState 
+              <EmptyState
                 icon={TrendingUp}
                 title="No Trending Articles Yet"
                 description="Be the first to publish research and start trending in the community."
@@ -527,33 +644,43 @@ const Dashboard = () => {
           <section>
             <div className="flex items-center justify-between mb-8">
               <div className="space-y-1">
-                <p className="text-[10px] font-bold text-accent uppercase tracking-[0.2em]">Curated Feed</p>
-                <h2 className="text-3xl font-serif font-bold text-primary tracking-tight">Most Read This Week</h2>
+                <p className="text-[10px] font-bold text-accent uppercase tracking-[0.2em]">
+                  Curated Feed
+                </p>
+                <h2 className="text-3xl font-serif font-bold text-primary tracking-tight">
+                  Most Read This Week
+                </h2>
               </div>
-              <Link 
+              <Link
                 to="/explore"
                 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest hover:text-accent transition-colors flex items-center gap-2 group"
               >
-                Explore More <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                Explore More{" "}
+                <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
-            
+
             {mostReadLoading ? (
               <div className="space-y-4">
-                {[1, 2, 3].map(i => <div key={i} className="h-24 bg-white rounded-3xl animate-pulse"></div>)}
+                {[1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="h-24 bg-white rounded-3xl animate-pulse"
+                  ></div>
+                ))}
               </div>
             ) : mostRead?.length > 0 ? (
               <div className="space-y-4">
-                {mostRead.slice(0, 5).map(article => (
-                  <RecommendationItem 
-                    key={article.id} 
-                    article={article} 
-                    onClick={() => handleArticleClick(article)} 
+                {mostRead.slice(0, 5).map((article) => (
+                  <RecommendationItem
+                    key={article.id}
+                    article={article}
+                    onClick={() => handleArticleClick(article)}
                   />
                 ))}
               </div>
             ) : (
-              <EmptyState 
+              <EmptyState
                 icon={BookOpen}
                 title="No Articles Found"
                 description="Start exploring the research feed to discover new publications."
@@ -563,116 +690,190 @@ const Dashboard = () => {
             )}
           </section>
 
-          {/* ═══ 6. My Articles Overview ═══ */}
+          {/* ═══ 6. Article Management ═══ */}
           <section>
             <div className="flex items-center justify-between mb-8">
               <div className="space-y-1">
-                <p className="text-[10px] font-bold text-accent uppercase tracking-[0.2em]">Your Research</p>
-                <h2 className="text-3xl font-serif font-bold text-primary tracking-tight">My Articles</h2>
+                <p className="text-[10px] font-bold text-accent uppercase tracking-[0.2em]">
+                  Your Research
+                </p>
+                <h2 className="text-3xl font-serif font-bold text-primary tracking-tight">
+                  Article Management
+                </h2>
               </div>
-              <Link 
+              <Link
                 to="/my-articles"
                 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest hover:text-accent transition-colors flex items-center gap-2 group"
               >
-                Manage All <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                Manage All{" "}
+                <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
 
             {myArticlesLoading ? (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {[1, 2, 3].map(i => <div key={i} className="h-40 bg-white rounded-2xl animate-pulse"></div>)}
+                {[1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="h-40 bg-white rounded-2xl animate-pulse"
+                  ></div>
+                ))}
               </div>
             ) : myArticles?.results?.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Under Review Card */}
-                <div className="bg-white p-8 rounded-2xl border border-gray-50 shadow-sm hover:shadow-lg transition-all">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-500">
-                      <Clock className="w-5 h-5" />
-                    </div>
-                    <span className="text-3xl font-bold text-primary">{underReview.length}</span>
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-white p-6 rounded-2xl border border-gray-50 shadow-sm">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                      Draft
+                    </p>
+                    <p className="text-3xl font-bold text-primary mt-2">
+                      {draftArticles.length}
+                    </p>
                   </div>
-                  <h4 className="font-bold text-primary text-sm mb-1">Under Review</h4>
-                <p className="text-[10px] text-gray-400 font-medium">Awaiting decision</p>
-                  {underReview.length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-gray-50">
-                      <div className="flex items-start justify-between gap-3">
+                  <div className="bg-white p-6 rounded-2xl border border-gray-50 shadow-sm">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                      Under Review
+                    </p>
+                    <p className="text-3xl font-bold text-primary mt-2">
+                      {underReview.length}
+                    </p>
+                  </div>
+                  <div className="bg-white p-6 rounded-2xl border border-gray-50 shadow-sm">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                      Nominated
+                    </p>
+                    <p className="text-3xl font-bold text-primary mt-2">
+                      {nominatedArticles.length}
+                    </p>
+                  </div>
+                  <div className="bg-white p-6 rounded-2xl border border-gray-50 shadow-sm">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                      Published
+                    </p>
+                    <p className="text-3xl font-bold text-primary mt-2">
+                      {published.length}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {myArticles.results.slice(0, 4).map((article) => (
+                    <div
+                      key={article.id}
+                      className="bg-white p-6 rounded-[2rem] border border-gray-50 shadow-sm"
+                    >
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs font-bold text-primary line-clamp-1">{underReview[0].title}</p>
-                          <p className="text-[10px] text-gray-300 mt-1">Submitted for review</p>
+                          <div className="flex flex-wrap items-center gap-3 mb-3">
+                            <span
+                              className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${getStatusBadgeClasses(article.status)}`}
+                            >
+                              {formatStatusLabel(article.status)}
+                            </span>
+                            {article.subsidy_status === "subsidy_pending" && (
+                              <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border bg-amber-50 text-amber-700 border-amber-200">
+                                Subsidy Pending
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-lg font-bold text-primary line-clamp-1">
+                            {article.title}
+                          </p>
+                          <p className="text-xs text-gray-400 font-medium mt-1">
+                            {article.nominated_journal?.name
+                              ? `Journal: ${article.nominated_journal.name}`
+                              : "No journal nomination yet"}
+                          </p>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => handleToggleSuggest(underReview[0].id)}
-                          className="shrink-0 bg-accent/10 hover:bg-accent/20 text-accent px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest"
-                        >
-                          Suggest Best Journals
-                        </button>
+
+                        <div className="flex flex-wrap items-center gap-2 shrink-0">
+                          {(article.status === "under_review" ||
+                            article.status === "nominated") && (
+                            <button
+                              type="button"
+                              onClick={() => handleToggleSuggest(article.id)}
+                              className="bg-accent/10 hover:bg-accent/20 text-accent px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest"
+                            >
+                              Suggest Journals
+                            </button>
+                          )}
+                          {article.status === "published" &&
+                            article.pdf_file && (
+                              <a
+                                href={article.pdf_file}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="bg-primary hover:bg-[#152c4d] text-white px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest inline-flex items-center gap-2"
+                              >
+                                <Download className="w-3.5 h-3.5" />
+                                Download
+                              </a>
+                            )}
+                          <Link
+                            to={`/article/${article.slug}`}
+                            className="border border-gray-100 hover:border-accent/20 hover:text-accent text-gray-500 px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest inline-flex items-center gap-2"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            Open
+                          </Link>
+                        </div>
                       </div>
 
-                      {suggestOpenForArticleId === underReview[0].id && (
+                      {suggestOpenForArticleId === article.id && (
                         <div className="mt-4 bg-[#F7FAFC] border border-gray-100 rounded-2xl p-4">
                           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
                             Top Recommendations
                           </p>
 
-                          {suggestLoadingForArticleId === underReview[0].id ? (
+                          {suggestLoadingForArticleId === article.id ? (
                             <div className="flex items-center gap-2 text-[10px] font-bold text-gray-500">
-                              <Loader2 className="w-4 h-4 animate-spin" /> Loading...
+                              <Loader2 className="w-4 h-4 animate-spin" />{" "}
+                              Loading...
                             </div>
-                          ) : (suggestResults[underReview[0].id] || []).length > 0 ? (
+                          ) : (suggestResults[article.id] || []).length > 0 ? (
                             <div className="space-y-3">
-                              {(suggestResults[underReview[0].id] || []).slice(0, 3).map((j) => (
-                                <div key={j.id} className="bg-white border border-gray-50 rounded-xl p-3">
-                                  <p className="text-xs font-bold text-primary line-clamp-1">{j.name || j.journal_name || 'Journal'}</p>
-                                  <p className="text-[10px] text-gray-400 mt-1">{j.field_of_study || j.field || '—'} • IF: {j.impact_factor ?? '—'}</p>
-                                  <button
-                                    type="button"
-                                    onClick={() => applyNominatedJournal(underReview[0].id, j.id)}
-                                    className="mt-3 w-full bg-primary hover:bg-[#152c4d] text-white px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest"
+                              {(suggestResults[article.id] || [])
+                                .slice(0, 3)
+                                .map((j) => (
+                                  <div
+                                    key={j.id}
+                                    className="bg-white border border-gray-50 rounded-xl p-3"
                                   >
-                                    Apply as Nominated Journal
-                                  </button>
-                                </div>
-                              ))}
+                                    <p className="text-xs font-bold text-primary line-clamp-1">
+                                      {j.name || "Journal"}
+                                    </p>
+                                    <p className="text-[10px] text-gray-400 mt-1">
+                                      {j.field_of_study || "—"} • IF:{" "}
+                                      {j.impact_factor ?? "—"}
+                                    </p>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        applyNominatedJournal(
+                                          article.slug,
+                                          j.id,
+                                        )
+                                      }
+                                      className="mt-3 w-full bg-primary hover:bg-[#152c4d] text-white px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest"
+                                    >
+                                      Apply as Nominated Journal
+                                    </button>
+                                  </div>
+                                ))}
                             </div>
                           ) : (
-                            <p className="text-[10px] text-gray-400">No journal suggestions available.</p>
+                            <p className="text-[10px] text-gray-400">
+                              No journal suggestions available.
+                            </p>
                           )}
                         </div>
                       )}
-
                     </div>
-                  )}
-                </div>
-
-                {/* Published Card */}
-                <div className="bg-white p-8 rounded-2xl border border-gray-50 shadow-sm hover:shadow-lg transition-all">
-
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center text-accent">
-                      <FileText className="w-5 h-5" />
-                    </div>
-                    <span className="text-3xl font-bold text-primary">{published.length}</span>
-                  </div>
-                  <h4 className="font-bold text-primary text-sm mb-1">Published</h4>
-                  <p className="text-[10px] text-gray-400 font-medium">Live & accessible</p>
-                  {published.length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-gray-50">
-                      <p className="text-xs font-bold text-primary line-clamp-1">{published[0].title}</p>
-                      <p className="text-[10px] text-gray-300 mt-1">{published[0].views_count || 0} views</p>
-                      {!published[0].external_journal_accepted && (
-                        <div className="mt-2 flex items-center gap-1 text-[10px] font-bold text-orange-500">
-                          <AlertCircle className="w-3 h-3" />
-                          <span>Pending External Journal Publication</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  ))}
                 </div>
               </div>
             ) : (
-              <EmptyState 
+              <EmptyState
                 icon={FileText}
                 title="No Articles Yet"
                 description="Start your research journey by submitting your first manuscript."
@@ -685,11 +886,10 @@ const Dashboard = () => {
 
         {/* ═══ Right Column (4/12) Sidebar ═══ */}
         <div className="lg:col-span-4 space-y-10">
-          
           {/* ═══ 7. Recent Activity Feed ═══ */}
-          <RecentActivityFeed 
-            activities={notificationsData?.results || []} 
-            loading={notificationsLoading} 
+          <RecentActivityFeed
+            activities={notificationsData?.results || []}
+            loading={notificationsLoading}
           />
 
           {/* ═══ Points & Activity Widget ═══ */}
@@ -697,12 +897,17 @@ const Dashboard = () => {
           <div className="bg-accent/5 p-10 rounded-[2.5rem] border border-accent/10 relative overflow-hidden group">
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-primary tracking-tight">Academic Points</h3>
-                <Link to="/leaderboard" className="text-[10px] font-bold text-accent uppercase tracking-widest hover:underline">
+                <h3 className="text-lg font-bold text-primary tracking-tight">
+                  Academic Points
+                </h3>
+                <Link
+                  to="/leaderboard"
+                  className="text-[10px] font-bold text-accent uppercase tracking-widest hover:underline"
+                >
                   Leaderboard
                 </Link>
               </div>
-              
+
               {pointsLoading ? (
                 <div className="h-10 w-24 bg-accent/10 animate-pulse rounded-lg mb-4"></div>
               ) : (
@@ -710,15 +915,16 @@ const Dashboard = () => {
                   <span className="text-5xl font-serif font-bold text-accent tracking-tighter">
                     {myPoints?.total || 0}
                   </span>
-                  <span className="text-[10px] font-bold text-accent/60 uppercase tracking-widest">pts</span>
+                  <span className="text-[10px] font-bold text-accent/60 uppercase tracking-widest">
+                    pts
+                  </span>
                 </div>
               )}
-              
+
               <p className="text-sm text-gray-500 font-medium leading-relaxed mb-4 opacity-80">
-                Earn points by publishing, reviewing, and engaging with the research community.
+                Earn points by publishing, reviewing, and engaging with the
+                research community.
               </p>
-
-
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between text-xs">
@@ -729,7 +935,8 @@ const Dashboard = () => {
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-bold text-gray-400 flex items-center gap-2">
-                    <Bookmark className="w-3 h-3 text-accent" /> Receive Bookmark
+                    <Bookmark className="w-3 h-3 text-accent" /> Receive
+                    Bookmark
                   </span>
                   <span className="font-bold text-accent">+3 pts</span>
                 </div>
@@ -747,20 +954,29 @@ const Dashboard = () => {
           {/* ═══ 9. Network Growth Widget ═══ */}
           <div className="bg-primary p-10 rounded-[2.5rem] relative overflow-hidden group shadow-xl shadow-primary/20">
             <div className="relative z-10">
-              <h3 className="text-lg font-bold text-white tracking-tight mb-4">Network Growth</h3>
+              <h3 className="text-lg font-bold text-white tracking-tight mb-4">
+                Network Growth
+              </h3>
               <p className="text-sm text-blue-100/70 font-medium leading-relaxed mb-8">
-                You have <span className="text-white font-bold">{user?.network_count || 0} connections</span> in your academic network. 
-                Keep publishing and reviewing to expand your reach.
+                You have{" "}
+                <span className="text-white font-bold">
+                  {user?.network_count || 0} connections
+                </span>{" "}
+                in your academic network. Keep publishing and reviewing to
+                expand your reach.
               </p>
               <div className="flex items-center gap-4">
                 <div className="flex -space-x-3">
-                  {[1, 2, 3].map(i => (
-                    <div key={i} className="w-10 h-10 rounded-full bg-accent border-2 border-white flex items-center justify-center text-[10px] font-bold text-white shadow-sm">
+                  {[1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className="w-10 h-10 rounded-full bg-accent border-2 border-white flex items-center justify-center text-[10px] font-bold text-white shadow-sm"
+                    >
                       <User className="w-4 h-4" />
                     </div>
                   ))}
                 </div>
-                <Link 
+                <Link
                   to="/explore"
                   className="text-[10px] font-bold text-accent uppercase tracking-widest hover:underline"
                 >
@@ -773,10 +989,17 @@ const Dashboard = () => {
 
           {/* ═══ 10. Platform Stats Widget ═══ */}
           <div className="bg-white p-8 rounded-[2.5rem] border border-gray-50 shadow-sm">
-            <h3 className="text-lg font-bold text-primary tracking-tight mb-6">Platform Overview</h3>
+            <h3 className="text-lg font-bold text-primary tracking-tight mb-6">
+              Platform Overview
+            </h3>
             {statsLoading ? (
               <div className="space-y-4">
-                {[1, 2, 3].map(i => <div key={i} className="h-6 bg-gray-50 animate-pulse rounded-lg"></div>)}
+                {[1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="h-6 bg-gray-50 animate-pulse rounded-lg"
+                  ></div>
+                ))}
               </div>
             ) : statsError ? (
               <div className="flex items-center gap-2 text-gray-400 text-xs">
@@ -787,26 +1010,38 @@ const Dashboard = () => {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-gray-400 flex items-center gap-2">
-                    <FileText className="w-3.5 h-3.5 text-primary" /> Total Articles
+                    <FileText className="w-3.5 h-3.5 text-primary" /> Total
+                    Articles
                   </span>
-                  <span className="text-sm font-bold text-primary">{stats?.total_articles?.toLocaleString() || 0}</span>
+                  <span className="text-sm font-bold text-primary">
+                    {stats?.total_articles?.toLocaleString() || 0}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-gray-400 flex items-center gap-2">
-                    <Users className="w-3.5 h-3.5 text-primary" /> Active Authors
+                    <Users className="w-3.5 h-3.5 text-primary" /> Active
+                    Authors
                   </span>
-                  <span className="text-sm font-bold text-primary">{stats?.total_authors?.toLocaleString() || 0}</span>
+                  <span className="text-sm font-bold text-primary">
+                    {stats?.total_authors?.toLocaleString() || 0}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-gray-400 flex items-center gap-2">
                     <BookOpen className="w-3.5 h-3.5 text-primary" /> Categories
                   </span>
-                  <span className="text-sm font-bold text-primary">{stats?.total_categories || 0}</span>
+                  <span className="text-sm font-bold text-primary">
+                    {stats?.total_categories || 0}
+                  </span>
                 </div>
                 {stats?.most_viewed && (
                   <div className="pt-4 border-t border-gray-50">
-                    <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest mb-2">Most Viewed</p>
-                    <p className="text-xs font-bold text-primary line-clamp-2">{stats.most_viewed}</p>
+                    <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest mb-2">
+                      Most Viewed
+                    </p>
+                    <p className="text-xs font-bold text-primary line-clamp-2">
+                      {stats.most_viewed}
+                    </p>
                   </div>
                 )}
               </div>
@@ -815,17 +1050,28 @@ const Dashboard = () => {
 
           {/* ═══ 11. Resources Links ═══ */}
           <div className="space-y-6 px-4">
-            <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Resources</p>
+            <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">
+              Resources
+            </p>
             <div className="space-y-4">
-              <Link to="/bookmarks" className="flex items-center gap-4 text-sm font-bold text-gray-500 hover:text-primary transition-colors group w-full text-left">
+              <Link
+                to="/bookmarks"
+                className="flex items-center gap-4 text-sm font-bold text-gray-500 hover:text-primary transition-colors group w-full text-left"
+              >
                 <Bookmark className="w-4 h-4 text-gray-300 group-hover:text-accent transition-colors" />
                 My Bookmarks
               </Link>
-              <Link to="/settings" className="flex items-center gap-4 text-sm font-bold text-gray-500 hover:text-primary transition-colors group w-full text-left">
+              <Link
+                to="/settings"
+                className="flex items-center gap-4 text-sm font-bold text-gray-500 hover:text-primary transition-colors group w-full text-left"
+              >
                 <Edit3 className="w-4 h-4 text-gray-300 group-hover:text-accent transition-colors" />
                 Account Settings
               </Link>
-              <Link to="/profile" className="flex items-center gap-4 text-sm font-bold text-gray-500 hover:text-primary transition-colors group w-full text-left">
+              <Link
+                to="/profile"
+                className="flex items-center gap-4 text-sm font-bold text-gray-500 hover:text-primary transition-colors group w-full text-left"
+              >
                 <User className="w-4 h-4 text-gray-300 group-hover:text-accent transition-colors" />
                 My Profile
               </Link>

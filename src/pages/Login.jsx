@@ -58,7 +58,7 @@ const Login = () => {
       console.log('[AUTH DEBUG] Is Admin?', freshUser?.is_staff === true || freshUser?.role === 'admin');
 
       const isSuperAdmin = !!(freshUser?.is_superuser || freshUser?.role === 'admin' || freshUser?.role === 'super_admin');
-      const nextPath = isSuperAdmin ? '/super-admin-dashboard' : '/';
+      const nextPath = isSuperAdmin ? '/admin/dashboard' : '/';
       navigate(nextPath);
 
     } catch (err) {

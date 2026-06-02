@@ -112,12 +112,16 @@ const ResearchFeed = () => {
     search: '',
     category__slug: '',
     ordering: '-created_at',
-    this_week: false,
-    this_month: false,
+    this_week: '',
+    this_month: '',
   });
 
   const { data: articles, isLoading, isFetching } = useGetArticlesQuery(params);
   const { data: categories } = useGetCategoriesQuery();
+  
+  const categoriesList = Array.isArray(categories) 
+    ? categories 
+    : categories?.results || [];
 
   const handleSearch = (e) => {
     setParams(prev => ({ ...prev, search: e.target.value, page: 1 }));
@@ -130,8 +134,8 @@ const ResearchFeed = () => {
   const handleTimelineChange = (timeline) => {
     setParams(prev => ({ 
       ...prev, 
-      this_week: timeline === 'week', 
-      this_month: timeline === 'month',
+      this_week: timeline === 'week' ? 'true' : '', 
+      this_month: timeline === 'month' ? 'true' : '',
       page: 1 
     }));
   };
@@ -173,17 +177,17 @@ const ResearchFeed = () => {
               All Disciplines
               {params.category__slug === '' && <div className="w-1.5 h-1.5 bg-accent rounded-full"></div>}
             </button>
-            {['Engineering', 'Medical', 'Tech', 'Arts'].map((cat) => (
+            {categoriesList.map((cat) => (
               <button 
-                key={cat}
-                onClick={() => handleCategoryChange(cat.toLowerCase())}
+                key={cat.id}
+                onClick={() => handleCategoryChange(cat.slug)}
                 className={`w-full text-left px-6 py-3.5 rounded-2xl text-sm font-bold tracking-tight transition-all flex items-center justify-between group
-                  ${params.category__slug === cat.toLowerCase() ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-gray-500 hover:bg-white hover:text-primary'}
+                  ${params.category__slug === cat.slug ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-gray-500 hover:bg-white hover:text-primary'}
                 `}
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-1.5 h-1.5 rounded-full transition-colors ${params.category__slug === cat.toLowerCase() ? 'bg-accent' : 'bg-gray-200 group-hover:bg-accent'}`}></div>
-                  {cat}
+                  <div className={`w-1.5 h-1.5 rounded-full transition-colors ${params.category__slug === cat.slug ? 'bg-accent' : 'bg-gray-200 group-hover:bg-accent'}`}></div>
+                  {cat.name}
                 </div>
               </button>
             ))}
@@ -198,7 +202,7 @@ const ResearchFeed = () => {
                 type="radio" 
                 name="timeline" 
                 className="w-4 h-4 border-2 border-gray-200 text-accent focus:ring-accent"
-                checked={params.this_week}
+                checked={params.this_week === 'true'}
                 onChange={() => handleTimelineChange('week')}
               />
               <span className="text-sm font-bold text-gray-500 group-hover:text-primary transition-colors">This Week</span>
@@ -208,10 +212,20 @@ const ResearchFeed = () => {
                 type="radio" 
                 name="timeline" 
                 className="w-4 h-4 border-2 border-gray-200 text-accent focus:ring-accent"
-                checked={params.this_month}
+                checked={params.this_month === 'true'}
                 onChange={() => handleTimelineChange('month')}
               />
               <span className="text-sm font-bold text-gray-500 group-hover:text-primary transition-colors">This Month</span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer group">
+              <input 
+                type="radio" 
+                name="timeline" 
+                className="w-4 h-4 border-2 border-gray-200 text-accent focus:ring-accent"
+                checked={params.this_week === '' && params.this_month === ''}
+                onChange={() => handleTimelineChange('all')}
+              />
+              <span className="text-sm font-bold text-gray-500 group-hover:text-primary transition-colors">All Time</span>
             </label>
           </div>
         </div>

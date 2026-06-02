@@ -16,7 +16,7 @@ const AuthLayout = ({ children, title, subtitle, heroTitle, heroText }) => {
           {/* Logo */}
           <div className="relative z-10 flex items-center gap-2 text-2xl font-serif">
             <BookOpen className="text-accent w-8 h-8" />
-            <span className="font-bold tracking-tight">[Platform Name]</span>
+            <span className="font-bold tracking-tight">Researcher</span>
           </div>
 
           {/* Hero Content */}

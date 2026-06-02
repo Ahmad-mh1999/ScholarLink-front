@@ -1,238 +1,263 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 export const baseApi = createApi({
-  reducerPath: 'api',
+  reducerPath: "api",
   baseQuery: fetchBaseQuery({
     baseUrl: (() => {
-      const raw = import.meta.env.VITE_API_URL || '';
+      const raw = import.meta.env.VITE_API_URL || "";
       // Prevent double-prefixing like .../api/v1/api/v1/...
       // and ensure we always have a trailing slash for RTK Query path joins.
-      const normalized = raw.replace(/\/+$/u, '/');
+      const normalized = raw.replace(/\/+$/u, "/");
       return normalized;
     })(),
     prepareHeaders: (headers) => {
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem("access_token");
       if (token) {
-        headers.set('Authorization', `Bearer ${token}`);
+        headers.set("Authorization", `Bearer ${token}`);
       }
       return headers;
     },
   }),
-  tagTypes: ['Articles', 'User', 'Notifications', 'Stats', 'Categories', 'Points', 'Reviews', 'Journals', 'ReviewRequests', 'Guidelines'],
+  tagTypes: [
+    "Articles",
+    "User",
+    "Notifications",
+    "Stats",
+    "Categories",
+    "Points",
+    "Reviews",
+    "Journals",
+    "ReviewRequests",
+    "Guidelines",
+  ],
   endpoints: (builder) => ({
     getStats: builder.query({
-      query: () => 'stats/platform/',
-      providesTags: ['Stats'],
+      query: () => "stats/platform/",
+      providesTags: ["Stats"],
     }),
     getLandingStats: builder.query({
-      query: () => 'landing-stats/',
-      providesTags: ['Stats'],
+      query: () => "landing-stats/",
+      providesTags: ["Stats"],
     }),
     getArticleBySlug: builder.query({
       query: (slug) => `articles/${slug}/`,
-      providesTags: (result, error, slug) => [{ type: 'Articles', id: slug }],
+      providesTags: (result, error, slug) => [{ type: "Articles", id: slug }],
     }),
     likeArticle: builder.mutation({
       query: (slug) => ({
         url: `articles/${slug}/like/`,
-        method: 'POST',
+        method: "POST",
       }),
-      invalidatesTags: (result, error, slug) => [{ type: 'Articles', id: slug }],
+      invalidatesTags: (result, error, slug) => [
+        { type: "Articles", id: slug },
+      ],
     }),
     bookmarkArticle: builder.mutation({
       query: (slug) => ({
         url: `articles/${slug}/bookmark/`,
-        method: 'POST',
+        method: "POST",
       }),
-      invalidatesTags: (result, error, slug) => [{ type: 'Articles', id: slug }],
+      invalidatesTags: (result, error, slug) => [
+        { type: "Articles", id: slug },
+      ],
     }),
     rateArticle: builder.mutation({
       query: ({ slug, rating }) => ({
         url: `articles/${slug}/rate/`,
-        method: 'POST',
+        method: "POST",
         body: { rating },
       }),
-      invalidatesTags: (result, error, { slug }) => [{ type: 'Articles', id: slug }],
+      invalidatesTags: (result, error, { slug }) => [
+        { type: "Articles", id: slug },
+      ],
     }),
     getComments: builder.query({
       query: (slug) => `articles/${slug}/comments/`,
-      providesTags: (result, error, slug) => [{ type: 'Articles', id: `${slug}-comments` }],
+      providesTags: (result, error, slug) => [
+        { type: "Articles", id: `${slug}-comments` },
+      ],
     }),
     postComment: builder.mutation({
       query: ({ slug, content, parentId }) => ({
         url: `articles/${slug}/comments/`,
-        method: 'POST',
+        method: "POST",
         body: { content, parent: parentId },
       }),
-      invalidatesTags: (result, error, { slug }) => [{ type: 'Articles', id: `${slug}-comments` }],
+      invalidatesTags: (result, error, { slug }) => [
+        { type: "Articles", id: `${slug}-comments` },
+      ],
     }),
     createArticle: builder.mutation({
       query: (formData) => ({
-        url: 'articles/',
-        method: 'POST',
+        url: "articles/",
+        method: "POST",
         body: formData,
       }),
-      invalidatesTags: ['Articles', 'Stats'],
+      invalidatesTags: ["Articles", "Stats"],
     }),
     getNotifications: builder.query({
       query: (params) => ({
-        url: 'notifications/',
+        url: "notifications/",
         params: params,
       }),
-      providesTags: ['Notifications'],
+      providesTags: ["Notifications"],
     }),
     getUnreadNotificationsCount: builder.query({
-      query: () => 'notifications/unread/',
-      providesTags: ['Notifications'],
+      query: () => "notifications/unread/",
+      providesTags: ["Notifications"],
     }),
     markAllNotificationsRead: builder.mutation({
       query: () => ({
-        url: 'notifications/mark-all-read/',
-        method: 'POST',
+        url: "notifications/mark-all-read/",
+        method: "POST",
       }),
-      invalidatesTags: ['Notifications'],
+      invalidatesTags: ["Notifications"],
     }),
     markNotificationRead: builder.mutation({
       query: (id) => ({
         url: `notifications/${id}/read/`,
-        method: 'POST',
+        method: "POST",
       }),
-      invalidatesTags: ['Notifications'],
+      invalidatesTags: ["Notifications"],
     }),
     getMyArticles: builder.query({
       query: (params) => ({
-        url: 'articles/my/',
+        url: "articles/my/",
         params: params,
       }),
-      providesTags: ['Articles'],
+      providesTags: ["Articles"],
     }),
     deleteArticle: builder.mutation({
       query: (slug) => ({
         url: `articles/${slug}/`,
-        method: 'DELETE',
+        method: "DELETE",
       }),
-      invalidatesTags: ['Articles', 'Stats'],
+      invalidatesTags: ["Articles", "Stats"],
     }),
     getReviewDashboard: builder.query({
-      query: () => 'reviews/dashboard/',
-      providesTags: ['Articles'],
+      query: () => "reviews/dashboard/",
+      providesTags: ["Articles"],
     }),
     respondToReviewRequest: builder.mutation({
       query: ({ id, action }) => ({
         url: `reviews/${id}/respond/`,
-        method: 'POST',
+        method: "POST",
         body: { action }, // 'accept' or 'decline'
       }),
-      invalidatesTags: ['Articles', 'Stats'],
+      invalidatesTags: ["Articles", "Stats"],
     }),
     assignReviewer: builder.mutation({
       query: (slug) => ({
         url: `articles/${slug}/assign-reviewer/`,
-        method: 'POST',
+        method: "POST",
       }),
-      invalidatesTags: ['Articles'],
+      invalidatesTags: ["Articles"],
     }),
     getCitation: builder.query({
       query: (slug) => `articles/${slug}/citation/`,
     }),
     getCategories: builder.query({
-      query: () => 'categories/',
-      providesTags: ['Categories'],
+      query: () => "categories/",
+      providesTags: ["Categories"],
     }),
     getArticles: builder.query({
       query: (params) => ({
-        url: 'articles/',
+        url: "articles/",
         params: params,
       }),
-      providesTags: ['Articles'],
+      providesTags: ["Articles"],
     }),
     getTrendingArticles: builder.query({
-      query: () => 'articles/?ordering=-views_count',
-      providesTags: ['Articles'],
+      query: () => "articles/?ordering=-views_count",
+      providesTags: ["Articles"],
     }),
     getRecommendedArticles: builder.query({
-      query: () => 'stats/most-read/',
-      providesTags: ['Articles'],
+      query: () => "stats/most-read/",
+      providesTags: ["Articles"],
     }),
     getDrafts: builder.query({
-      query: () => 'articles/my/',
-      providesTags: ['Articles'],
+      query: () => "articles/my/",
+      providesTags: ["Articles"],
     }),
     getPendingReviews: builder.query({
       query: (params) => ({
-        url: 'reviews/pending/',
+        url: "reviews/pending/",
         params: params,
       }),
-      providesTags: ['Articles'],
+      providesTags: ["Articles"],
     }),
     getReviewerStats: builder.query({
-      query: () => 'stats/reviewer/',
-      providesTags: ['Stats'],
+      query: () => "stats/reviewer/",
+      providesTags: ["Stats"],
     }),
     getAdminStats: builder.query({
-      query: () => 'admin/stats/',
-      providesTags: ['Stats'],
+      query: () => "admin/stats/",
+      providesTags: ["Stats"],
     }),
     getAdminUsers: builder.query({
-      query: () => 'admin/users/',
-      providesTags: ['User'],
+      query: () => "admin/users/",
+      providesTags: ["User"],
     }),
     updateAdminUser: builder.mutation({
       query: ({ id, ...updates }) => ({
         url: `admin/users/${id}/`,
-        method: 'PATCH',
+        method: "PATCH",
         body: updates,
       }),
-      invalidatesTags: ['User'],
+      invalidatesTags: ["User"],
     }),
     getAdminArticles: builder.query({
       query: (params) => ({
-        url: 'admin/articles/',
+        url: "admin/articles/",
         params: params,
       }),
-      providesTags: ['Articles'],
+      providesTags: ["Articles"],
     }),
     moderateArticle: builder.mutation({
       query: ({ slug, status, feedback }) => ({
         url: `articles/${slug}/moderate/`,
-        method: 'POST',
+        method: "POST",
         body: { status, feedback },
       }),
-      invalidatesTags: (result, error, { slug }) => [{ type: 'Articles', id: slug }, 'Articles', 'Stats'],
+      invalidatesTags: (result, error, { slug }) => [
+        { type: "Articles", id: slug },
+        "Articles",
+        "Stats",
+      ],
     }),
     deleteUser: builder.mutation({
       query: (id) => ({
         url: `admin/users/${id}/`,
-        method: 'DELETE',
+        method: "DELETE",
       }),
-      invalidatesTags: ['User', 'Stats'],
+      invalidatesTags: ["User", "Stats"],
     }),
     getAdminCategories: builder.query({
-      query: () => 'admin/categories/',
-      providesTags: ['Categories'],
+      query: () => "admin/categories/",
+      providesTags: ["Categories"],
     }),
     getUserProfile: builder.query({
-      query: (username) => username ? `users/${username}/` : 'users/me/',
-      providesTags: ['User'],
+      query: (username) => (username ? `users/${username}/` : "users/me/"),
+      providesTags: ["User"],
     }),
     getBookmarks: builder.query({
-      query: () => 'articles/bookmarks/',
-      providesTags: ['Articles'],
+      query: () => "articles/bookmarks/",
+      providesTags: ["Articles"],
     }),
     followUser: builder.mutation({
       query: (username) => ({
         url: `users/${username}/follow/`,
-        method: 'POST',
+        method: "POST",
       }),
-      invalidatesTags: ['User'],
+      invalidatesTags: ["User"],
     }),
     updateProfile: builder.mutation({
       query: (formData) => ({
-        url: 'users/me/',
-        method: 'PATCH',
+        url: "users/me/",
+        method: "PATCH",
         body: formData,
       }),
-      invalidatesTags: ['User'],
+      invalidatesTags: ["User"],
     }),
     updateArticle: builder.mutation({
       query: ({ slug, formData }) => {
@@ -241,271 +266,350 @@ export const baseApi = createApi({
         const body = formData ?? {};
         return {
           url: `articles/${slug}/`,
-          method: 'PATCH',
+          method: "PATCH",
           body,
         };
       },
-      invalidatesTags: (result, error, { slug }) => [{ type: 'Articles', id: slug }, 'Articles', 'Stats'],
+      invalidatesTags: (result, error, { slug }) => [
+        { type: "Articles", id: slug },
+        "Articles",
+        "Stats",
+      ],
     }),
     getMyPoints: builder.query({
-      query: () => 'points/my/',
-      providesTags: ['Points'],
+      query: () => "points/my/",
+      providesTags: ["Points"],
     }),
     getPointsTransactions: builder.query({
-      query: (params) => ({ url: 'points/transactions/', params }),
-      providesTags: ['Points'],
+      query: (params) => ({ url: "points/transactions/", params }),
+      providesTags: ["Points"],
     }),
     getLeaderboard: builder.query({
-      query: () => 'points/leaderboard/',
-      providesTags: ['Points'],
+      query: () => "points/leaderboard/",
+      providesTags: ["Points"],
     }),
     getArticlesByCategory: builder.query({
-      query: () => 'stats/articles-by-category/',
-      providesTags: ['Stats'],
+      query: () => "stats/articles-by-category/",
+      providesTags: ["Stats"],
     }),
     getMonthlyArticles: builder.query({
-      query: () => 'stats/monthly-articles/',
-      providesTags: ['Stats'],
+      query: () => "stats/monthly-articles/",
+      providesTags: ["Stats"],
     }),
     getTopAuthors: builder.query({
-      query: () => 'stats/top-authors/',
-      providesTags: ['Stats'],
+      query: () => "stats/top-authors/",
+      providesTags: ["Stats"],
     }),
     getMostRead: builder.query({
-      query: (params) => ({ url: 'stats/most-read/', params }),
-      providesTags: ['Stats'],
+      query: (params) => ({ url: "stats/most-read/", params }),
+      providesTags: ["Stats"],
     }),
     submitReview: builder.mutation({
       query: ({ id, feedback, rating, decision, is_anonymous }) => ({
         url: `reviews/${id}/submit/`,
-        method: 'POST',
+        method: "POST",
         body: { feedback, rating, decision, is_anonymous },
       }),
-      invalidatesTags: ['Articles', 'Reviews', 'Stats'],
+      invalidatesTags: ["Articles", "Reviews", "Stats"],
     }),
     likeComment: builder.mutation({
       query: (pk) => ({
         url: `comments/${pk}/like/`,
-        method: 'POST',
+        method: "POST",
       }),
-      invalidatesTags: ['Articles'],
+      invalidatesTags: ["Articles"],
     }),
     // Admin mutations
     activateUser: builder.mutation({
       query: (id) => ({
         url: `admin/users/${id}/activate/`,
-        method: 'POST',
+        method: "POST",
       }),
-      invalidatesTags: ['User'],
+      invalidatesTags: ["User"],
     }),
     deactivateUser: builder.mutation({
       query: (id) => ({
         url: `admin/users/${id}/deactivate/`,
-        method: 'POST',
+        method: "POST",
       }),
-      invalidatesTags: ['User'],
+      invalidatesTags: ["User"],
     }),
     verifyUser: builder.mutation({
       query: (id) => ({
         url: `admin/users/${id}/verify/`,
-        method: 'POST',
+        method: "POST",
       }),
-      invalidatesTags: ['User'],
+      invalidatesTags: ["User"],
     }),
     suspendUser: builder.mutation({
       query: (id) => ({
         url: `admin/users/${id}/suspend/`,
-        method: 'POST',
+        method: "POST",
       }),
-      invalidatesTags: ['User'],
+      invalidatesTags: ["User"],
     }),
     restoreUser: builder.mutation({
       query: (id) => ({
         url: `admin/users/${id}/restore/`,
-        method: 'POST',
+        method: "POST",
       }),
-      invalidatesTags: ['User'],
+      invalidatesTags: ["User"],
     }),
     createCategory: builder.mutation({
       query: (data) => ({
-        url: 'admin/categories/',
-        method: 'POST',
+        url: "admin/categories/",
+        method: "POST",
         body: data,
       }),
-      invalidatesTags: ['Categories'],
+      invalidatesTags: ["Categories"],
     }),
     updateCategory: builder.mutation({
       query: ({ id, ...data }) => ({
         url: `admin/categories/${id}/`,
-        method: 'PATCH',
+        method: "PATCH",
         body: data,
       }),
-      invalidatesTags: ['Categories'],
+      invalidatesTags: ["Categories"],
     }),
     deleteCategory: builder.mutation({
       query: (id) => ({
         url: `admin/categories/${id}/`,
-        method: 'DELETE',
+        method: "DELETE",
       }),
-      invalidatesTags: ['Categories'],
+      invalidatesTags: ["Categories"],
     }),
     getCategoryDetail: builder.query({
       query: (slug) => `categories/${slug}/`,
-      providesTags: ['Categories'],
+      providesTags: ["Categories"],
     }),
     getReviewDetail: builder.query({
       query: (pk) => `reviews/${pk}/`,
-      providesTags: ['Reviews'],
+      providesTags: ["Reviews"],
     }),
     sendNotification: builder.mutation({
       query: (data) => ({
-        url: 'notifications/send/',
-        method: 'POST',
+        url: "notifications/send/",
+        method: "POST",
         body: data,
       }),
-      invalidatesTags: ['Notifications'],
+      invalidatesTags: ["Notifications"],
     }),
     // ==================== Journal Endpoints (Admin CRUD) ====================
     getJournals: builder.query({
       query: (params) => ({
-        url: 'admin/journals/',
+        url: "admin/journals/",
         params: params,
       }),
-      providesTags: ['Journals'],
+      providesTags: ["Journals"],
     }),
 
     createJournal: builder.mutation({
       query: (data) => ({
-        url: 'admin/journals/',
-        method: 'POST',
+        url: "admin/journals/",
+        method: "POST",
         body: data,
       }),
-      invalidatesTags: ['Journals'],
+      invalidatesTags: ["Journals"],
     }),
 
     updateJournal: builder.mutation({
       query: ({ id, ...data }) => ({
         url: `admin/journals/${id}/`,
-        method: 'PATCH',
+        method: "PATCH",
         body: data,
       }),
-      invalidatesTags: ['Journals'],
+      invalidatesTags: ["Journals"],
+    }),
+
+    getAdminArticleJournalRecommendations: builder.query({
+      query: (slug) => `admin/articles/${slug}/journal-recommendations/`,
+      providesTags: (result, error, slug) => [
+        { type: "Articles", id: slug },
+        "Journals",
+      ],
+    }),
+
+    adminAssignReviewer: builder.mutation({
+      query: ({ slug, reviewer_id, message }) => ({
+        url: `admin/articles/${slug}/assign-reviewer/`,
+        method: "POST",
+        body: { reviewer_id, message },
+      }),
+      invalidatesTags: (result, error, { slug }) => [
+        { type: "Articles", id: slug },
+        "Articles",
+      ],
+    }),
+
+    adminNominateJournal: builder.mutation({
+      query: ({ slug, journal_id }) => ({
+        url: `admin/articles/${slug}/nominate-journal/`,
+        method: "POST",
+        body: { journal_id },
+      }),
+      invalidatesTags: (result, error, { slug }) => [
+        { type: "Articles", id: slug },
+        "Articles",
+        "Journals",
+      ],
+    }),
+
+    adminPublishArticle: builder.mutation({
+      query: (slug) => ({
+        url: `admin/articles/${slug}/publish/`,
+        method: "POST",
+      }),
+      invalidatesTags: (result, error, slug) => [
+        { type: "Articles", id: slug },
+        "Articles",
+        "Stats",
+      ],
     }),
 
     deleteJournal: builder.mutation({
       query: (id) => ({
         url: `admin/journals/${id}/`,
-        method: 'DELETE',
+        method: "DELETE",
       }),
-      invalidatesTags: ['Journals'],
+      invalidatesTags: ["Journals"],
     }),
 
     // Kept for other parts of the app (if used elsewhere)
     recommendJournals: builder.query({
       query: (params) => ({
-        url: 'reviews/api/journals/recommend/',
+        url: "reviews/api/journals/recommend/",
         params: params,
       }),
-      providesTags: ['Journals'],
+      providesTags: ["Journals"],
     }),
 
     // ==================== Review Request Endpoints ====================
     getReviewRequests: builder.query({
       query: (params) => ({
-        url: 'reviews/api/review-requests/',
+        url: "reviews/api/review-requests/",
         params: params,
       }),
-      providesTags: ['ReviewRequests'],
+      providesTags: ["ReviewRequests"],
     }),
     assignReviewer: builder.mutation({
       query: (data) => ({
-        url: 'reviews/api/review-requests/',
-        method: 'POST',
+        url: "reviews/api/review-requests/",
+        method: "POST",
         body: data,
       }),
-      invalidatesTags: ['ReviewRequests', 'Articles'],
+      invalidatesTags: ["ReviewRequests", "Articles"],
     }),
     getMyReviewRequests: builder.query({
-      query: () => 'reviews/api/review-requests/my_requests/',
-      providesTags: ['ReviewRequests'],
+      query: () => "reviews/api/review-requests/my_requests/",
+      providesTags: ["ReviewRequests"],
     }),
     acceptReviewRequest: builder.mutation({
       query: (id) => ({
         url: `reviews/api/review-requests/${id}/accept/`,
-        method: 'POST',
+        method: "POST",
       }),
-      invalidatesTags: ['ReviewRequests', 'Reviews'],
+      invalidatesTags: ["ReviewRequests", "Reviews"],
     }),
     rejectReviewRequest: builder.mutation({
       query: (id) => ({
         url: `reviews/api/review-requests/${id}/reject/`,
-        method: 'POST',
+        method: "POST",
       }),
-      invalidatesTags: ['ReviewRequests'],
+      invalidatesTags: ["ReviewRequests"],
     }),
     // ==================== Review Endpoints ====================
     getReviews: builder.query({
       query: (params) => ({
-        url: 'reviews/api/reviews/',
+        url: "reviews/api/reviews/",
         params: params,
       }),
-      providesTags: ['Reviews'],
+      providesTags: ["Reviews"],
     }),
     getMyReviews: builder.query({
-      query: () => 'reviews/api/reviews/my_reviews/',
-      providesTags: ['Reviews'],
+      query: () => "reviews/api/reviews/my_reviews/",
+      providesTags: ["Reviews"],
     }),
     getArticleReviews: builder.query({
       query: (articleId) => ({
-        url: 'reviews/api/reviews/article_reviews/',
+        url: "reviews/api/reviews/article_reviews/",
         params: { article_id: articleId },
       }),
-      providesTags: (result, error, articleId) => [{ type: 'Reviews', id: articleId }],
+      providesTags: (result, error, articleId) => [
+        { type: "Reviews", id: articleId },
+      ],
     }),
     createReview: builder.mutation({
       query: (data) => ({
-        url: 'reviews/api/reviews/',
-        method: 'POST',
+        url: "reviews/api/reviews/",
+        method: "POST",
         body: data,
       }),
-      invalidatesTags: ['Reviews', 'Articles'],
+      invalidatesTags: ["Reviews", "Articles"],
     }),
     updateReview: builder.mutation({
       query: ({ id, ...data }) => ({
         url: `reviews/api/reviews/${id}/`,
-        method: 'PATCH',
+        method: "PATCH",
         body: data,
       }),
-      invalidatesTags: ['Reviews'],
+      invalidatesTags: ["Reviews"],
     }),
     submitReview: builder.mutation({
       query: ({ id, ...data }) => ({
         url: `reviews/api/reviews/${id}/submit/`,
-        method: 'POST',
+        method: "POST",
         body: data,
       }),
-      invalidatesTags: ['Reviews', 'Articles'],
+      invalidatesTags: ["Reviews", "Articles"],
     }),
     // ==================== Points Endpoints ====================
     expediteReview: builder.mutation({
       query: (articleId) => ({
-        url: 'points/api/user-points/expedite_review/',
-        method: 'POST',
+        url: "points/api/user-points/expedite_review/",
+        method: "POST",
         body: { article_id: articleId },
       }),
-      invalidatesTags: ['Points', 'Articles'],
+      invalidatesTags: ["Points", "Articles"],
     }),
     checkFormattingEligibility: builder.query({
-      query: () => 'points/api/user-points/check_formatting_eligibility/',
-      providesTags: ['Points', 'Guidelines'],
+      query: () => "points/api/user-points/check_formatting_eligibility/",
+      providesTags: ["Points", "Guidelines"],
     }),
     getJournalGuidelines: builder.query({
-      query: () => 'points/api/guidelines/',
-      providesTags: ['Guidelines'],
+      query: () => "points/api/guidelines/",
+      providesTags: ["Guidelines"],
     }),
     downloadManuscript: builder.query({
       query: (articleId) => `articles/download/${articleId}/`,
-      providesTags: (result, error, articleId) => [{ type: 'Articles', id: articleId }],
+      providesTags: (result, error, articleId) => [
+        { type: "Articles", id: articleId },
+      ],
+    }),
+    // ==================== Public Journal Endpoints ====================
+    getPublicJournals: builder.query({
+      query: (params) => ({ url: 'articles/public-journals/', params }),
+      providesTags: ['Journals'],
+    }),
+    getRecommendedJournalsForArticle: builder.query({
+      query: (id) => `articles/${id}/recommend-journals/`,
+      providesTags: ['Journals'],
+    }),
+    createArticleMultipart: builder.mutation({
+      query: (formData) => ({
+        url: 'articles/',
+        method: 'POST',
+        body: formData,
+      }),
+      invalidatesTags: ['Articles', 'Stats', 'Points'],
+    }),
+    // ==================== Admin Journal Nomination ====================
+    nominateJournal: builder.mutation({
+      query: ({ slug, journal_id }) => ({
+        url: `admin/articles/${slug}/nominate-journal/`,
+        method: 'POST',
+        body: { journal_id },
+      }),
+      invalidatesTags: ['Articles'],
     }),
   }),
 });
@@ -572,9 +676,12 @@ export const {
   useGetJournalsQuery,
   useCreateJournalMutation,
   useUpdateJournalMutation,
+  useGetAdminArticleJournalRecommendationsQuery,
+  useAdminAssignReviewerMutation,
+  useAdminNominateJournalMutation,
+  useAdminPublishArticleMutation,
   useDeleteJournalMutation,
   useRecommendJournalsQuery,
-
 
   // Review Request hooks
   useGetReviewRequestsQuery,
@@ -593,4 +700,10 @@ export const {
   useCheckFormattingEligibilityQuery,
   useGetJournalGuidelinesQuery,
   useDownloadManuscriptQuery,
+  // Public Journal hooks
+  useGetPublicJournalsQuery,
+  useGetRecommendedJournalsForArticleQuery,
+  useCreateArticleMultipartMutation,
+  // Admin Journal Nomination hook
+  useNominateJournalMutation,
 } = baseApi;

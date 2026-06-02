@@ -53,7 +53,7 @@ const Navbar = () => {
           Home
         </Link>
         <Link to="/explore" className="text-sm font-medium text-[#2D3748] hover:text-[#319795] transition-colors">
-          Journals
+          Articles
         </Link>
         <Link to="/leaderboard" className="text-sm font-medium text-[#2D3748] hover:text-[#319795] transition-colors">
           Leaderboard
@@ -182,7 +182,7 @@ const Navbar = () => {
               Home
             </Link>
             <Link to="/explore" className="block py-2 text-sm font-medium text-[#2D3748] hover:text-[#319795]">
-              Journals
+              Articles
             </Link>
             <Link to="/leaderboard" className="block py-2 text-sm font-medium text-[#2D3748] hover:text-[#319795]">
               Leaderboard

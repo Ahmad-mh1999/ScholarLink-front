@@ -10,6 +10,7 @@ import {
   useUpdateJournalMutation,
   useDeleteJournalMutation,
   useSendNotificationMutation,
+  useNominateJournalMutation,
 } from '../api/baseApi';
 
 
@@ -50,6 +51,8 @@ const SuperAdminDashboard = () => {
 
   const [updateArticle] = useUpdateArticleMutation();
   const [deleteArticle] = useDeleteArticleMutation();
+  const [nominateJournal] = useNominateJournalMutation();
+  const [nominateModal, setNominateModal] = useState({ open: false, article: null });
 
   // Journals
   const {
@@ -215,14 +218,6 @@ const SuperAdminDashboard = () => {
     }
   };
 
-  const handleNominateJournal = (e) => {
-    e.preventDefault();
-
-    console.warn('Nomination mapping requires adding useNominateJournalMutation to baseApi.js.');
-    window.alert('Nomination mapping requires adding useNominateJournalMutation to baseApi.js.');
-  };
-
-
   const handleSendNotification = async (e) => {
     e.preventDefault();
 
@@ -242,6 +237,36 @@ const SuperAdminDashboard = () => {
     } catch (error) {
       console.error(error);
       window.alert('Failed to send notification. Please try again.');
+    }
+  };
+
+  const handleNominateJournal = async (article, journalId) => {
+    try {
+      await nominateJournal({ slug: article.slug, journal_id: journalId }).unwrap();
+      window.alert('Journal nominated successfully.');
+      setNominateModal({ open: false, article: null });
+      refetchArticles();
+    } catch (error) {
+      console.error(error);
+      window.alert('Failed to nominate journal. Please try again.');
+    }
+  };
+
+  const handleUpdateUserRole = async (userId, newRole) => {
+    try {
+      // Use the UserUpdateView endpoint
+      await fetch(`/api/v1/admin/users/${userId}/`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ role: newRole }),
+      });
+      window.alert('User role updated successfully.');
+      refetchUsers();
+    } catch (error) {
+      console.error(error);
+      window.alert('Failed to update user role. Please try again.');
     }
   };
 
@@ -404,6 +429,7 @@ const SuperAdminDashboard = () => {
                             <th className="p-4">Email</th>
                             <th className="p-4">Institution</th>
                             <th className="p-4">Role</th>
+                            <th className="p-4">Points</th>
                             <th className="p-4 text-center">Actions</th>
                           </tr>
                         </thead>
@@ -416,14 +442,17 @@ const SuperAdminDashboard = () => {
                               <td className="p-4">
                                 <span
                                   className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                                    u?.role === 'Admin'
+                                    u?.role === 'admin'
                                       ? 'bg-indigo-100 text-indigo-800'
-                                      : 'bg-emerald-100 text-emerald-800'
+                                      : u?.role === 'reviewer'
+                                      ? 'bg-emerald-100 text-emerald-800'
+                                      : 'bg-zinc-100 text-zinc-600'
                                   }`}
                                 >
-                                  {u?.role || '—'}
+                                  {u?.role || 'user'}
                                 </span>
                               </td>
+                              <td className="p-4 font-semibold text-indigo-700">{u?.points?.total || 0}</td>
                               <td className="p-4 text-center">
                                 <button
                                   onClick={() => setSelectedUser(u)}
@@ -437,7 +466,7 @@ const SuperAdminDashboard = () => {
 
                           {!usersLoading && (usersArray || []).length === 0 && (
                             <tr>
-                              <td colSpan={5} className="p-6 text-center text-sm text-zinc-500">
+                              <td colSpan={6} className="p-6 text-center text-sm text-zinc-500">
                                 No users found.
                               </td>
                             </tr>
@@ -502,14 +531,24 @@ const SuperAdminDashboard = () => {
                       </div>
                       <div>
                         <div className="text-xs text-zinc-500 font-semibold uppercase">System Role</div>
-                        <div className="font-semibold text-slate-800">{selectedUser?.role || '—'}</div>
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={selectedUser?.role || 'user'}
+                            onChange={(e) => handleUpdateUserRole(selectedUser?.id, e.target.value)}
+                            className="px-3 py-1.5 border border-zinc-200 rounded-lg text-sm font-semibold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                          >
+                            <option value="user">User</option>
+                            <option value="reviewer">Reviewer</option>
+                            <option value="admin">Admin</option>
+                          </select>
+                        </div>
                       </div>
                     </div>
 
                     <div className="shrink-0">
                       <div className="text-xs text-zinc-500 font-semibold uppercase mb-1 text-right">Total Academic Points</div>
                       <div className="inline-flex items-center px-4 py-2 rounded-xl bg-indigo-50 border border-indigo-100">
-                        <span className="text-xl font-bold text-indigo-800">{selectedUser?.points ?? 0}</span>
+                        <span className="text-xl font-bold text-indigo-800">{selectedUser?.points?.total ?? 0}</span>
                         <span className="ml-2 text-sm font-semibold text-indigo-700">Points</span>
                       </div>
                     </div>
@@ -621,8 +660,13 @@ const SuperAdminDashboard = () => {
 
                         return (
                           <tr key={article?.slug || article?.id} className="hover:bg-zinc-50">
-                            <td className="p-4 font-semibold text-slate-900 max-w-xs truncate">{article?.title || '—'}</td>
-                            <td className="p-4">{authorName || 'Unknown'}</td>
+                                            <td className="p-4 font-semibold text-slate-900 max-w-xs truncate">{article?.title || '—'}</td>
+                            <td className="p-4">
+                              <div className="flex flex-col gap-1">
+                                <span className="font-semibold text-slate-900">{authorName || 'Unknown'}</span>
+                                <span className="text-xs text-zinc-400">Role: {article?.author?.role || 'user'}</span>
+                              </div>
+                            </td>
                             <td className="p-4 text-indigo-700 font-semibold">{nominatedJournalName}</td>
                             <td className="p-4">
                               {subsidy === 'pending_review' ? (
@@ -647,6 +691,12 @@ const SuperAdminDashboard = () => {
                                     Approve
                                   </button>
                                 )}
+                                <button
+                                  onClick={() => setNominateModal({ open: true, article })}
+                                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition"
+                                >
+                                  Nominate Journal
+                                </button>
                                 <button
                                   onClick={() => handleDeleteArticle(article?.slug)}
                                   className="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition"
@@ -882,6 +932,48 @@ const SuperAdminDashboard = () => {
                 </div>
               </form>
             </section>
+          )}
+
+          {/* Nominate Journal Modal */}
+          {nominateModal.open && nominateModal.article && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+              <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+                <h3 className="text-lg font-bold text-slate-900 mb-4">Nominate Journal</h3>
+                <p className="text-sm text-zinc-600 mb-4">
+                  Select a journal to nominate for: <span className="font-semibold">{nominateModal.article.title}</span>
+                </p>
+                <div className="space-y-3 mb-6">
+                  <label className="block text-xs font-semibold text-zinc-600">Select Journal</label>
+                  <select
+                    value={nominateModal.journalId || ''}
+                    onChange={(e) => setNominateModal({ ...nominateModal, journalId: e.target.value })}
+                    className="w-full p-3 border border-zinc-200 rounded-xl text-sm bg-zinc-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  >
+                    <option value="">-- Choose Journal --</option>
+                    {(journalsArray || []).map((j) => (
+                      <option key={j?.id || j?.slug || j?.name} value={j?.id || ''}>
+                        {j?.name || '—'} (IF: {j?.impact_factor || 'N/A'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setNominateModal({ open: false, article: null, journalId: null })}
+                    className="flex-1 px-4 py-2 border border-zinc-200 rounded-xl text-sm font-semibold text-zinc-700 hover:bg-zinc-50 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => handleNominateJournal(nominateModal.article, nominateModal.journalId)}
+                    disabled={!nominateModal.journalId}
+                    className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition disabled:opacity-50"
+                  >
+                    Nominate
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* TAB 5: Notifications */}
