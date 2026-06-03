@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
 import {
   Search,
   Bell,
@@ -19,6 +20,7 @@ import {
   Users,
   BookOpen,
   BellRing,
+  X,
 } from 'lucide-react';
 import {
   Chart as ChartJS,
@@ -39,6 +41,11 @@ import {
   useGetAdminStatsQuery,
   useGetJournalsQuery,
   useSendNotificationMutation,
+  useAdminPublishArticleMutation,
+  useAcceptArticleMutation,
+  useRejectArticleMutation,
+  useAdminNominateJournalMutation,
+  useGetAdminArticleJournalRecommendationsQuery,
 } from '../api/baseApi';
 
 // Register ChartJS components
@@ -64,6 +71,14 @@ const SuperAdminDashboard = () => {
   const [sendToAll, setSendToAll] = useState(true);
   const [selectedUserId, setSelectedUserId] = useState('');
   const [sendNotification] = useSendNotificationMutation();
+  const [adminPublishArticle] = useAdminPublishArticleMutation();
+  const [acceptArticle] = useAcceptArticleMutation();
+  const [rejectArticle] = useRejectArticleMutation();
+  const [adminNominateJournal] = useAdminNominateJournalMutation();
+  
+  const [reviewModal, setReviewModal] = useState({ open: false, article: null });
+  const [nominateModal, setNominateModal] = useState({ open: false, article: null });
+  const [rejectionMessage, setRejectionMessage] = useState('');
 
   const { data: usersData, isLoading: usersLoading, refetch: refetchUsers } = useGetAdminUsersQuery();
   const { data: articlesData, isLoading: articlesLoading, refetch: refetchArticles } = useGetAdminArticlesQuery();
@@ -157,6 +172,15 @@ const SuperAdminDashboard = () => {
       console.error('Failed to send notification:', err);
       alert('Failed to send notification: ' + (err?.data?.error || err?.message));
     }
+  };
+
+  const calculateCostCoverage = (points) => {
+    if (!points) return 0;
+    if (points >= 100) return 20;
+    if (points >= 200) return 40;
+    if (points >= 500) return 60;
+    if (points >= 1000) return 100;
+    return 0;
   };
 
   return (
@@ -538,9 +562,32 @@ const SuperAdminDashboard = () => {
                         </td>
                         <td className="px-8 py-6">
                           <div className="flex items-center justify-center gap-3">
-                            <button className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition-all">
+                            <button 
+                              onClick={() => setReviewModal({ open: true, article })}
+                              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition-all"
+                            >
                               <Eye className="w-3.5 h-3.5" />
-                              Moderate
+                              Review
+                            </button>
+                            <button 
+                              onClick={async () => {
+                                try {
+                                  await adminPublishArticle(article.slug).unwrap();
+                                  alert('Article published successfully!');
+                                  refetchArticles();
+                                } catch (err) {
+                                  console.error('Failed to publish article:', err);
+                                  alert('Failed to publish article: ' + (err?.data?.detail || err?.message));
+                                }
+                              }}
+                              disabled={article.status !== 'nominated'}
+                              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                                article.status === 'nominated' 
+                                  ? 'bg-green-600 hover:bg-green-700 text-white' 
+                                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                              }`}
+                            >
+                              Publish
                             </button>
                           </div>
                         </td>
@@ -675,8 +722,248 @@ const SuperAdminDashboard = () => {
               </form>
             </div>
           )}
+
+          {/* Review Modal */}
+          {reviewModal.open && reviewModal.article && (
+            <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-[2rem] w-full max-w-5xl max-h-[90vh] overflow-y-auto">
+                <div className="sticky top-0 bg-white border-b border-gray-100 px-8 py-6 flex items-center justify-between">
+                  <h2 className="text-2xl font-serif font-bold text-primary">Review Article</h2>
+                  <button 
+                    onClick={() => setReviewModal({ open: false, article: null })}
+                    className="text-gray-400 hover:text-gray-700"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+                
+                <div className="p-8 space-y-8">
+                  {/* Article Header */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <span className="px-4 py-1.5 bg-accent/5 text-accent text-[10px] font-bold rounded-full uppercase tracking-widest">
+                        {reviewModal.article.category_name || reviewModal.article?.category?.name || 'Uncategorized'}
+                      </span>
+                    </div>
+                    <h3 className="text-3xl font-serif font-bold text-primary">{reviewModal.article.title}</h3>
+                  </div>
+                  
+                  {/* Abstract */}
+                  {reviewModal.article.abstract && (
+                    <section className="bg-[#F7FAFC] p-8 rounded-[2rem] border border-gray-100">
+                      <p className="text-sm font-bold text-primary uppercase tracking-widest mb-4">Abstract</p>
+                      <p className="text-gray-700 italic text-lg">{reviewModal.article.abstract}</p>
+                    </section>
+                  )}
+                  
+                  {/* Content */}
+                  {reviewModal.article.content && (
+                    <section>
+                      <p className="text-sm font-bold text-primary uppercase tracking-widest mb-4">Content</p>
+                      <div className="prose prose-slate max-w-none">
+                        <ReactMarkdown>{reviewModal.article.content}</ReactMarkdown>
+                      </div>
+                    </section>
+                  )}
+                  
+                  {/* PDF File */}
+                  {reviewModal.article.pdf_file && (
+                    <div className="pt-4">
+                      <a 
+                        href={reviewModal.article.pdf_file} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="bg-accent hover:bg-[#287E7B] text-white px-8 py-4 rounded-xl font-bold flex items-center gap-3 transition-all"
+                      >
+                        <Download className="w-5 h-5" />
+                        Download PDF
+                      </a>
+                    </div>
+                  )}
+                  
+                  {/* Action Buttons */}
+                  <div className="pt-8 border-t border-gray-100 flex flex-col gap-4">
+                    <div className="space-y-2">
+                      <label className="block text-sm font-bold text-gray-700">Rejection Reason</label>
+                      <textarea
+                        value={rejectionMessage}
+                        onChange={(e) => setRejectionMessage(e.target.value)}
+                        placeholder="Enter a reason for rejecting this article (optional)"
+                        className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        rows={3}
+                      />
+                    </div>
+                    
+                    <div className="flex gap-4">
+                      <button
+                        onClick={async () => {
+                          try {
+                            await rejectArticle({
+                              slug: reviewModal.article.slug,
+                              rejection_reason: rejectionMessage
+                            }).unwrap();
+                            alert('Article rejected successfully!');
+                            refetchArticles();
+                            setReviewModal({ open: false, article: null });
+                            setRejectionMessage('');
+                          } catch (err) {
+                            console.error('Failed to reject article:', err);
+                            alert('Failed to reject article: ' + (err?.data?.detail || err?.message));
+                          }
+                        }}
+                        className="flex-1 bg-red-600 hover:bg-red-700 text-white px-8 py-4 rounded-xl font-bold transition-all"
+                      >
+                        Reject Article
+                      </button>
+                      
+                      <button
+                        onClick={async () => {
+                          try {
+                            await acceptArticle(reviewModal.article.slug).unwrap();
+                            alert('Article accepted successfully!');
+                            refetchArticles();
+                            setReviewModal({ open: false, article: null });
+                            setNominateModal({ open: true, article: reviewModal.article });
+                          } catch (err) {
+                            console.error('Failed to accept article:', err);
+                            alert('Failed to accept article: ' + (err?.data?.detail || err?.message));
+                          }
+                        }}
+                        className="flex-1 bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-xl font-bold transition-all"
+                      >
+                        Accept Article
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Nominate Journal Modal */}
+          {nominateModal.open && nominateModal.article && (
+            <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+              <NominateJournalModal 
+                article={nominateModal.article} 
+                onClose={() => setNominateModal({ open: false, article: null })} 
+                onSuccess={() => {
+                  refetchArticles();
+                  setNominateModal({ open: false, article: null });
+                }}
+                calculateCostCoverage={calculateCostCoverage}
+              />
+            </div>
+          )}
         </div>
       </main>
+    </div>
+  );
+};
+
+const NominateJournalModal = ({ article, onClose, onSuccess, calculateCostCoverage }) => {
+  const [selectedJournalId, setSelectedJournalId] = useState('');
+  const { data: recommendationsData } = useGetAdminArticleJournalRecommendationsQuery(article.slug);
+  const [adminNominateJournal] = useAdminNominateJournalMutation();
+  
+  const allJournals = useGetJournalsQuery();
+  const journals = recommendationsData?.recommendations || (Array.isArray(allJournals.data) ? allJournals.data : allJournals.data?.results || allJournals.data?.data || []);
+  
+  const authorPoints = typeof article.author === 'object' ? article.author.points?.total : 0;
+  const coveragePercent = calculateCostCoverage(authorPoints);
+  
+  return (
+    <div className="bg-white rounded-[2rem] w-full max-w-2xl max-h-[80vh] overflow-y-auto">
+      <div className="sticky top-0 bg-white border-b border-gray-100 px-8 py-6 flex items-center justify-between">
+        <h2 className="text-2xl font-serif font-bold text-primary">Nominate Journal</h2>
+        <button onClick={onClose} className="text-gray-400 hover:text-gray-700">
+          <X className="w-6 h-6" />
+        </button>
+      </div>
+
+      <div className="p-8 space-y-8">
+        {/* Author Points */}
+        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-6 rounded-2xl border border-gray-100">
+          <p className="text-sm font-bold text-gray-600 uppercase tracking-widest mb-2">Author Points</p>
+          <p className="text-4xl font-bold text-primary">{authorPoints || 0} <span className="text-lg font-medium text-gray-500">pts</span></p>
+          <p className="text-sm text-gray-600 mt-2">Cost Coverage: <span className="font-bold text-green-700">{coveragePercent}%</span></p>
+        </div>
+        
+        {/* Journals List */}
+        <div className="space-y-4">
+          <p className="text-sm font-bold text-gray-700 uppercase tracking-widest">Select Journal</p>
+          <div className="space-y-4">
+            {journals.map(journal => (
+              <div 
+                key={journal.id} 
+                onClick={() => setSelectedJournalId(journal.id)} 
+                className={`p-6 rounded-2xl border-2 cursor-pointer transition-all ${
+                  selectedJournalId == journal.id 
+                    ? 'border-indigo-600 bg-indigo-50' 
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-bold text-primary text-lg">{journal.name || journal.title}</p>
+                    <p className="text-sm text-gray-500">{journal.field_of_study}</p>
+                  </div>
+                  <div className="text-right">
+                    {journal.impact_factor && (
+                      <p className="text-sm font-bold text-yellow-700">IF: {journal.impact_factor}</p>
+                    )}
+                    {journal.publication_fee && (
+                      <p className="text-sm text-gray-500">Fee: ${(parseFloat(journal.publication_fee) || 0).toFixed(2)}</p>
+                    )}
+                  </div>
+                </div>
+                
+                {selectedJournalId == journal.id && journal.publication_fee && (
+                  <div className="mt-4 pt-4 border-t border-gray-200 flex justify-between items-center">
+                    <div>
+                      <p className="text-xs font-bold text-gray-500 uppercase">Cost Breakdown</p>
+                      <div className="flex gap-6 mt-2">
+                        <span className="text-sm">
+                          Total: <span className="font-bold text-primary">${(parseFloat(journal.publication_fee) || 0).toFixed(2)}</span>
+                        </span>
+                        <span className="text-sm">
+                          Coverage: <span className="font-bold text-green-700">{coveragePercent}%</span>
+                        </span>
+                        <span className="text-sm">
+                          User Pays: <span className="font-bold text-indigo-700">
+                            ${((parseFloat(journal.publication_fee) || 0) * (1 - coveragePercent / 100)).toFixed(2)}
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+        
+        <button
+          disabled={!selectedJournalId}
+          onClick={async () => {
+            try {
+              await adminNominateJournal({
+                slug: article.slug,
+                journal_id: selectedJournalId
+              }).unwrap();
+              alert('Journal nominated successfully!');
+              onSuccess();
+            } catch (err) {
+              console.error('Failed to nominate journal:', err);
+              alert('Failed to nominate journal: ' + (err?.data?.detail || err?.message));
+            }
+          }}
+          className={`w-full px-8 py-4 rounded-xl font-bold transition-all ${
+            selectedJournalId ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+          }`}
+        >
+          Nominate Journal
+        </button>
+      </div>
     </div>
   );
 };

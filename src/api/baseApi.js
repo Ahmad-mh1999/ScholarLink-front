@@ -619,6 +619,21 @@ export const baseApi = createApi({
       }),
       invalidatesTags: ['Articles'],
     }),
+    acceptArticle: builder.mutation({
+      query: (slug) => ({
+        url: `admin/articles/${slug}/accept/`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['Articles'],
+    }),
+    rejectArticle: builder.mutation({
+      query: ({ slug, rejection_reason }) => ({
+        url: `admin/articles/${slug}/reject/`,
+        method: 'POST',
+        body: { rejection_reason },
+      }),
+      invalidatesTags: ['Articles'],
+    }),
   }),
 });
 
@@ -688,6 +703,8 @@ export const {
   useAdminAssignReviewerMutation,
   useAdminNominateJournalMutation,
   useAdminPublishArticleMutation,
+  useAcceptArticleMutation,
+  useRejectArticleMutation,
   useDeleteJournalMutation,
   useRecommendJournalsQuery,
 
