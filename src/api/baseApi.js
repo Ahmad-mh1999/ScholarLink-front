@@ -355,6 +355,14 @@ export const baseApi = createApi({
       }),
       invalidatesTags: ["User"],
     }),
+    updateAdminUser: builder.mutation({
+      query: ({ id, ...data }) => ({
+        url: `admin/users/${id}/`,
+        method: "PATCH",
+        body: data,
+      }),
+      invalidatesTags: ["User"],
+    }),
     createCategory: builder.mutation({
       query: (data) => ({
         url: "admin/categories/",
