@@ -494,7 +494,22 @@ const SuperAdminDashboard = () => {
                             {user.points?.total || 0}
                           </td>
                           <td className="px-8 py-6 text-center">
-                            <button className="text-indigo-700 hover:text-indigo-900 font-semibold">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const username = user?.username || user?.user_name || user?.handle;
+                                const identifier = username ?? user?.id;
+
+                                if (!identifier) {
+                                  alert('Unable to open profile: missing username');
+                                  return;
+                                }
+
+                                // UserProfile expects /profile/:username
+                                navigate(`/profile/${identifier}`);
+                              }}
+                              className="text-indigo-700 hover:text-indigo-900 font-semibold"
+                            >
                               View Full Profile
                             </button>
                           </td>

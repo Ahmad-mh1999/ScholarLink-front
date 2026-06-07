@@ -27,13 +27,21 @@ import {
   useGetBookmarksQuery,
   useGetDraftsQuery,
   useFollowUserMutation,
-  useGetArticlesQuery
+  useGetArticlesQuery,
+  useGetMyPointsQuery
 } from '../api/baseApi';
 import { useParams } from 'react-router-dom';
 
 const UserProfile = () => {
   const { username } = useParams();
   const [activeTab, setActiveTab] = useState('published');
+
+  // Helper function to normalize RTK Query data (handles both array and paginated responses)
+  const normalizeArticles = (data) => {
+    if (Array.isArray(data)) return data;
+    if (data?.results) return data.results;
+    return [];
+  };
 
   // Fetch user profile data
   const { data: profile, isLoading: isProfileLoading } = useGetUserProfileQuery(username);
@@ -42,13 +50,23 @@ const UserProfile = () => {
   // For viewing own profile, use useGetMyArticlesQuery
   // For viewing other user's profile, use useGetArticlesQuery with author parameter
   const isOwnProfile = profile?.username === username;
-  
-  const { data: publishedArticles, isLoading: isPublishedLoading } = isOwnProfile
+
+  const { data: publishedArticlesData, isLoading: isPublishedLoading } = isOwnProfile
     ? useGetMyArticlesQuery({ status: 'published' })
     : useGetArticlesQuery({ author: username, status: 'published' });
-  
-  const { data: bookmarks, isLoading: isBookmarksLoading } = useGetBookmarksQuery(undefined, { skip: activeTab !== 'bookmarks' });
-  const { data: drafts, isLoading: isDraftsLoading } = useGetDraftsQuery(undefined, { skip: activeTab !== 'drafts' });
+
+  const { data: bookmarksData, isLoading: isBookmarksLoading } = useGetBookmarksQuery(undefined, { skip: activeTab !== 'bookmarks' });
+  const { data: draftsData, isLoading: isDraftsLoading } = useGetDraftsQuery(undefined, { skip: activeTab !== 'drafts' });
+
+  const publishedArticles = normalizeArticles(publishedArticlesData);
+  const bookmarks = normalizeArticles(bookmarksData);
+  const drafts = normalizeArticles(draftsData);
+
+  // Points summary for own profile
+  const { data: myPoints, isLoading: isPointsLoading } = useGetMyPointsQuery(undefined, {
+    skip: !isOwnProfile,
+  });
+
 
   const [followUser, { isLoading: isFollowing }] = useFollowUserMutation();
 
@@ -68,9 +86,9 @@ const UserProfile = () => {
 
   const getArticlesForTab = () => {
     switch (activeTab) {
-      case 'published': return publishedArticles || [];
-      case 'bookmarks': return bookmarks || [];
-      case 'drafts': return drafts || [];
+      case 'published': return publishedArticles;
+      case 'bookmarks': return bookmarks;
+      case 'drafts': return drafts;
       default: return [];
     }
   };
@@ -239,9 +257,47 @@ const UserProfile = () => {
             <span className="text-lg font-bold capitalize">{userData.academic_status || 'Researcher'}</span>
           </div>
         </div>
+
+        {/* Points card (own profile only) */}
+        {isOwnProfile && (
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Points</p>
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-teal-50 rounded-lg text-accent">
+                <Award className="w-5 h-5" />
+              </div>
+              <span className="text-2xl font-bold text-primary">{isPointsLoading ? '—' : (myPoints?.total || 0)}</span>
+            </div>
+          </div>
+        )}
       </div>
 
+
       {/* Additional Info Section */}
+      {isOwnProfile && (
+        <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-50">
+          <h2 className="text-xl font-bold text-primary mb-6">My Articles</h2>
+          <div className="space-y-3">
+            {publishedArticles.slice(0, 5).map((a) => (
+              <div key={a.id || a.slug} className="flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-primary truncate">{a.title || a.slug || 'Untitled'}</p>
+                  <p className="text-[10px] text-gray-500 font-medium uppercase tracking-widest">{a.published_at ? `Published ${a.published_at}` : 'Published'}</p>
+                </div>
+                <span className={`px-3 py-1.5 rounded-full text-[10px] font-bold ${
+                  (a.status || 'published') === 'published' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                }`}>
+                  {(a.status || 'published').replace(/_/g, ' ')}
+                </span>
+              </div>
+            ))}
+            {publishedArticles.length === 0 && (
+              <p className="text-sm text-gray-400">No published articles yet.</p>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-50">
         <h2 className="text-xl font-bold text-primary mb-6">Additional Information</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
