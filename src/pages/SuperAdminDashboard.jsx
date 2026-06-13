@@ -21,6 +21,7 @@ import {
   BookOpen,
   BellRing,
   X,
+  ChevronDown,
 } from 'lucide-react';
 import {
   Chart as ChartJS,
@@ -46,6 +47,7 @@ import {
   useRejectArticleMutation,
   useAdminNominateJournalMutation,
   useGetAdminArticleJournalRecommendationsQuery,
+  useUpdateAdminUserMutation,
 } from '../api/baseApi';
 
 // Register ChartJS components
@@ -75,6 +77,7 @@ const SuperAdminDashboard = () => {
   const [acceptArticle] = useAcceptArticleMutation();
   const [rejectArticle] = useRejectArticleMutation();
   const [adminNominateJournal] = useAdminNominateJournalMutation();
+  const [updateAdminUser] = useUpdateAdminUserMutation();
   
   const [reviewModal, setReviewModal] = useState({ open: false, article: null });
   const [nominateModal, setNominateModal] = useState({ open: false, article: null });
@@ -171,6 +174,17 @@ const SuperAdminDashboard = () => {
     } catch (err) {
       console.error('Failed to send notification:', err);
       alert('Failed to send notification: ' + (err?.data?.error || err?.message));
+    }
+  };
+
+  const handleRoleChange = async (userId, newRole) => {
+    try {
+      await updateAdminUser({ id: userId, role: newRole }).unwrap();
+      refetchUsers();
+      alert('User role updated successfully!');
+    } catch (err) {
+      console.error('Failed to update user role:', err);
+      alert('Failed to update user role: ' + (err?.data?.error || err?.message));
     }
   };
 
@@ -482,13 +496,19 @@ const SuperAdminDashboard = () => {
                             <p className="text-sm font-medium text-gray-500">{user.institution || '—'}</p>
                           </td>
                           <td className="px-8 py-6">
-                            <span className={`px-4 py-1.5 rounded-full text-[10px] font-bold ${
-                              user.role === 'admin' ? 'bg-blue-100 text-blue-800' :
-                              user.role === 'reviewer' ? 'bg-emerald-100 text-emerald-800' :
-                              'bg-gray-100 text-gray-800'
-                            }`}>
-                              {user.role}
-                            </span>
+                            <select
+                              value={user.role}
+                              onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                              className={`px-4 py-1.5 rounded-full text-[10px] font-bold border-0 cursor-pointer focus:ring-2 focus:ring-indigo-500 ${
+                                user.role === 'admin' ? 'bg-blue-100 text-blue-800' :
+                                user.role === 'reviewer' ? 'bg-emerald-100 text-emerald-800' :
+                                'bg-gray-100 text-gray-800'
+                              }`}
+                            >
+                              <option value="user">user</option>
+                              <option value="reviewer">reviewer</option>
+                              <option value="admin">admin</option>
+                            </select>
                           </td>
                           <td className="px-8 py-6 font-semibold text-indigo-700">
                             {user.points?.total || 0}
