@@ -60,7 +60,7 @@ const AdminArticleReview = () => {
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#F8FAFC] p-4">
         <AlertCircle className="w-12 h-12 text-red-500 mb-2" />
         <p className="text-gray-700 font-bold text-lg mb-4">Manuscript context not found.</p>
-        <button onClick={() => navigate('/admin-dashboard')} className="px-5 py-2 bg-indigo-600 text-white rounded-xl font-semibold">
+        <button onClick={() => navigate('/admin/dashboard')} className="px-5 py-2 bg-indigo-600 text-white rounded-xl font-semibold">
           Return to Dashboard
         </button>
       </div>
@@ -95,7 +95,7 @@ const AdminArticleReview = () => {
     try {
       await rejectArticle({ slug, rejection_reason: rejectionMessage }).unwrap();
       toast.success('Manuscript rejected and author has been notified.');
-      navigate('/admin-dashboard');
+      navigate('/admin/dashboard');
     } catch (err) {
       console.error(err);
       toast.error(err?.data?.detail || 'Failed to process rejection');
@@ -106,8 +106,8 @@ const AdminArticleReview = () => {
     <div className="min-h-screen bg-[#F8FAFC] pb-12" dir="ltr">
       {/* Top Header Navigation */}
       <header className="bg-white border-b border-gray-100 sticky top-0 z-30 px-6 py-4 flex items-center justify-between">
-        <button 
-          onClick={() => navigate('/admin-dashboard')}
+        <button
+          onClick={() => navigate('/admin/dashboard')}
           className="flex items-center gap-2 text-gray-600 hover:text-gray-900 font-semibold transition-all"
         >
           <ArrowLeft className="w-5 h-5" />

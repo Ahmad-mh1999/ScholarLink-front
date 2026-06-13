@@ -39,6 +39,8 @@ const AdminJournalNomination = () => {
     if (pts >= 500) return 60;   // 60% خصم
     if (pts >= 200) return 40;   // 40% خصم
     if (pts >= 100) return 20;   // 20% خصم
+    if (pts >= 50) return 10;    // 10% خصم
+    if (pts >= 20) return 5;     // 5% خصم
     return 0;
   };
 
@@ -58,7 +60,7 @@ const AdminJournalNomination = () => {
       }).unwrap();
       toast.success('Journal nominated successfully! Returning to admin queue...');
       // الحل للمشكلة الثالثة: التوجيه مباشرة إلى لوحة تحكم الأدمن
-      navigate('/admin-dashboard');
+      navigate('/admin/dashboard');
     } catch (err) {
       console.error(err);
       toast.error(err?.data?.detail || 'Failed to nominate journal');
@@ -78,7 +80,7 @@ const AdminJournalNomination = () => {
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#F8FAFC]">
         <AlertCircle className="w-12 h-12 text-red-500 mb-2" />
         <p className="text-gray-700 font-bold mb-4">Manuscript context not found.</p>
-        <button onClick={() => navigate('/admin-dashboard')} className="px-4 py-2 bg-indigo-600 text-white rounded-xl">
+        <button onClick={() => navigate('/admin/dashboard')} className="px-4 py-2 bg-indigo-600 text-white rounded-xl">
           Return to Dashboard
         </button>
       </div>
@@ -207,9 +209,17 @@ const AdminJournalNomination = () => {
                   <span>200 - 499 Pts</span>
                   <span className="font-bold text-slate-200">40% Partial Coverage</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between border-b border-white/5 pb-1">
                   <span>100 - 199 Pts</span>
                   <span className="font-bold text-slate-200">20% Minimum Subsidy</span>
+                </div>
+                <div className="flex justify-between border-b border-white/5 pb-1">
+                  <span>50 - 99 Pts</span>
+                  <span className="font-bold text-slate-200">10% Coverage</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>20 - 49 Pts</span>
+                  <span className="font-bold text-slate-200">5% Coverage</span>
                 </div>
               </div>
             </div>

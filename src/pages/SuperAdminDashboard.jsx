@@ -597,8 +597,8 @@ const SuperAdminDashboard = () => {
                         </td>
                         <td className="px-8 py-6">
                           <div className="flex items-center justify-center gap-3">
-                            <button 
-                              onClick={() => setReviewModal({ open: true, article })}
+                            <button
+                              onClick={() => navigate(`/admin/article-review/${article.slug}`)}
                               className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition-all"
                             >
                               <Eye className="w-3.5 h-3.5" />

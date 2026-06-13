@@ -16,6 +16,8 @@ import PeerReviewInbox from './pages/PeerReviewInbox';
 import UserProfile from './pages/UserProfile';
 import ReviewerDashboard from './pages/ReviewerDashboard';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
+import AdminArticleReview from './pages/AdminArticleReview';
+import AdminJournalNomination from './pages/AdminJournalNomination';
 import UserManagement from './pages/UserManagement';
 import BulkPaperUpload from './pages/BulkPaperUpload';
 import CompleteProfile from './pages/CompleteProfile';
@@ -363,6 +365,16 @@ function App() {
               <Route path="/admin/dashboard" element={
                 <ProtectedRoute requiredRole="admin">
                   <SuperAdminDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/article-review/:slug" element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminArticleReview />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/journal-nomination/:slug" element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminJournalNomination />
                 </ProtectedRoute>
               } />
               <Route path="/admin/user-management" element={

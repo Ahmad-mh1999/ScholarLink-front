@@ -1,13 +1,14 @@
 import React from 'react';
-import { 
-  Search, 
-  Bell, 
-  Plus, 
-  LayoutDashboard, 
-  FileText, 
-  BarChart2, 
-  CheckCircle, 
-  Edit, 
+import { useNavigate } from 'react-router-dom';
+import {
+  Search,
+  Bell,
+  Plus,
+  LayoutDashboard,
+  FileText,
+  BarChart2,
+  CheckCircle,
+  Edit,
   Eye,
   Filter,
   Download,
@@ -45,12 +46,13 @@ ChartJS.register(
 );
 
 const ReviewerDashboard = () => {
+  const navigate = useNavigate();
   const { data: pendingReviews, isLoading: isPendingLoading } = useGetPendingReviewsQuery();
   const { data: stats, isLoading: isStatsLoading } = useGetReviewerStatsQuery();
 
   // Chart Data - Articles by Major (Doughnut)
   const doughnutData = {
-    labels: stats?.articles_by_category?.map(cat => cat.category_name) || ['Engineering', 'Medical', 'Technology'],
+    labels: stats?.articles_by_category?.map(cat => cat.name) || ['Engineering', 'Medical', 'Technology'],
     datasets: [{
       data: stats?.articles_by_category?.map(cat => cat.count) || [42, 35, 23],
       backgroundColor: ['#1A365D', '#319795', '#CBD5E0'],
@@ -278,7 +280,10 @@ const ReviewerDashboard = () => {
                   </td>
                   <td className="px-8 py-6">
                     <div className="flex items-center justify-center gap-3">
-                      <button className="flex items-center gap-2 bg-accent hover:bg-[#287E7B] text-white px-4 py-2 rounded-lg text-xs font-bold transition-all">
+                      <button
+                        onClick={() => navigate(`/admin/article-review/${item.id}`)}
+                        className="flex items-center gap-2 bg-accent hover:bg-[#287E7B] text-white px-4 py-2 rounded-lg text-xs font-bold transition-all"
+                      >
                         <Eye className="w-3.5 h-3.5" />
                         Review
                       </button>
