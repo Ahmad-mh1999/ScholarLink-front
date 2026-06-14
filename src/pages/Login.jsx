@@ -33,6 +33,7 @@ const Login = () => {
     try {
       console.log('[AUTH DEBUG] Sending login request...');
       const response = await axiosInstance.post('auth/login/', data);
+      console.log('[AUTH DEBUG] Login request completed successfully');
       
       console.log('[AUTH DEBUG] Login Response:', response.data);
       
@@ -62,7 +63,12 @@ const Login = () => {
       navigate(nextPath);
 
     } catch (err) {
-      console.error('[AUTH DEBUG] Login error:', err.response?.data || err.message);
+      console.error('[AUTH DEBUG] Login error:', {
+        url: err?.config?.url,
+        status: err?.response?.status,
+        data: err?.response?.data,
+        message: err?.message,
+      });
       setServerError(err.response?.data?.message || 'Invalid email or password.');
     } finally {
       setLoading(false);

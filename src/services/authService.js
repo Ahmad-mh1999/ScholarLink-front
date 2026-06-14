@@ -162,6 +162,7 @@ const getCurrentUser = async () => {
     throw new Error('No access token');
   }
 
+  console.log('[AUTH DEBUG] Fetching /users/me/');
   const response = await authAxios.get('users/me/', {
     headers: {
       Authorization: `Bearer ${token}`,

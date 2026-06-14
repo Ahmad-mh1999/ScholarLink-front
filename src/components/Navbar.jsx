@@ -29,9 +29,9 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="h-20 bg-white border-b border-gray-100 px-4 sm:px-8 flex items-center justify-between sticky top-0 z-50">
+    <nav className="h-20 bg-white border-b border-gray-100 px-4 sm:px-8 flex items-center sticky top-0 z-50 gap-6">
       {/* Logo Section */}
-      <Link to="/" className="flex items-center gap-2">
+      <Link to="/" className="flex items-center gap-2 flex-shrink-0">
         <div className="bg-[#1A365D] p-2 rounded-xl">
           <BookOpen className="text-[#319795] w-6 h-6" />
         </div>
@@ -48,7 +48,7 @@ const Navbar = () => {
       </Link>
 
       {/* Desktop Navigation */}
-      <div className="hidden lg:flex items-center gap-8">
+      <div className="hidden lg:flex items-center gap-8 flex-shrink-0">
         <Link to="/" className="text-sm font-medium text-[#2D3748] hover:text-[#319795] transition-colors">
           Home
         </Link>
@@ -58,14 +58,13 @@ const Navbar = () => {
         <Link to="/leaderboard" className="text-sm font-medium text-[#2D3748] hover:text-[#319795] transition-colors">
           Leaderboard
         </Link>
-        <Link to="/about" className="text-sm font-medium text-[#2D3748] hover:text-[#319795] transition-colors">
-          About
-        </Link>
+
       </div>
 
       {/* Global Search Bar - Desktop */}
-      <div className="hidden md:flex flex-grow max-w-xl mx-8">
-        <form onSubmit={handleSearch} className="relative group w-full">
+      <div className="hidden md:flex flex-grow max-w-xl mx-8 min-w-0">
+        <form onSubmit={handleSearch} className="relative group w-full min-w-0">
+
           <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#319795] transition-colors w-5 h-5" />
           <input
             type="text"
@@ -187,9 +186,7 @@ const Navbar = () => {
             <Link to="/leaderboard" className="block py-2 text-sm font-medium text-[#2D3748] hover:text-[#319795]">
               Leaderboard
             </Link>
-            <Link to="/about" className="block py-2 text-sm font-medium text-[#2D3748] hover:text-[#319795]">
-              About
-            </Link>
+
             <div className="pt-4 border-t border-gray-100 flex flex-col gap-3">
               <Link
                 to="/login"
